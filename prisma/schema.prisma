@@ -125,11 +125,11 @@ model TranscriptChunk {
 }
 
 enum IntegrationPlatform {
-  GOOGLE
-  SLACK
-  JIRA
-  TRELLO
-  NOTION
-  ASANA
-  CLICKUP
+  google
+  slack
+  jira
+  trello
+  notion
+  asana
+  clickup
 }
