@@ -15,7 +15,7 @@ async function seedMeetings() {
         const actionItems = JSON.parse(fs.readFileSync(path.join(dataPath, 'action-items.json'), 'utf8'))
         const titles = JSON.parse(fs.readFileSync(path.join(dataPath, 'title.json'), 'utf8'))
 
-        const userId = 'user_3GSMDQJfVAvhsDsvLYvMv9pJRv5'
+        const userId = 'user_2zRytJaBexiUzgf1VncfMZo4C1v'
         const recordingUrl = 'https://meetingbot1.s3.eu-north-1.amazonaws.com/test-audio.mp3'
 
         const now = new Date()

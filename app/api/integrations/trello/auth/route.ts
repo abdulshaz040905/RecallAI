@@ -1,9 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { log } from "node:console";
 
 export async function GET() {
-    log("aa")
     const { userId } = await auth()
 
     if (!userId) {

@@ -1,16 +1,39 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-@import "shadcn/tailwind.css";
 
 @custom-variant dark (&:is(.dark *));
+
+/* ===========================================================================
+   RECALL AI — editorial design system
+   ---------------------------------------------------------------------------
+   Off-white paper, near-black ink, one vermilion accent. No glassmorphism,
+   no purple gradients. Personality comes from typography, hairline rules,
+   generous whitespace and motion — not from colour effects.
+=========================================================================== */
+
+@theme {
+  --animate-shimmer: shimmer 1.8s infinite;
+  --animate-fade-in: fade-in 300ms ease-out 150ms both;
+}
+
+@keyframes shimmer {
+  100% { transform: translateX(100%); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
+
+  --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --animate-gradient: gradient 8s linear infinite;
-  --font-heading: var(--font-sans);
+  --font-display: var(--font-display-face);
+  --font-serif: var(--font-serif-face);
+
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -40,97 +63,594 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
+
+  /* Raw palette, also exposed as Tailwind colours (bg-paper, text-ink…) */
+  --color-paper: var(--paper);
+  --color-paper-2: var(--paper-2);
+  --color-paper-3: var(--paper-3);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-faint: var(--ink-faint);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-vermilion: var(--vermilion);
+
+  --radius-sm: calc(var(--radius) - 6px);
+  --radius-md: calc(var(--radius) - 3px);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
-  @keyframes gradient {
-  to {
-    background-position: var(--bg-size, 300%) 0;
-    }
+  --radius-xl: calc(var(--radius) + 6px);
+  --radius-2xl: calc(var(--radius) + 12px);
+
+  --animate-marquee: marquee var(--marquee-duration, 40s) linear infinite;
+  --animate-marquee-reverse: marquee-reverse var(--marquee-duration, 40s) linear infinite;
+
+  @keyframes marquee {
+    from { transform: translate3d(0, 0, 0); }
+    to { transform: translate3d(-50%, 0, 0); }
+  }
+  @keyframes marquee-reverse {
+    from { transform: translate3d(-50%, 0, 0); }
+    to { transform: translate3d(0, 0, 0); }
+  }
+  @keyframes blink-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.25; }
   }
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --radius: 0.875rem;
+
+  /* --- raw palette ------------------------------------------------------ */
+  --paper: #f1f0ee;
+  --paper-2: #e6e4e0;
+  --paper-3: #dcd9d4;
+  --ink: #121110;
+  --ink-soft: #56534e;
+  --ink-faint: #8b8781;
+  /* The one brand colour. Deliberately kept separate from shadcn's `--accent`,
+     which is a neutral hover surface, not a hue. */
+  --vermilion: #ff4a1c;
+  --vermilion-ink: #ffffff;
+  --line: rgba(18, 17, 16, 0.14);
+  --line-strong: rgba(18, 17, 16, 0.26);
+
+  /* --- semantic (shadcn) tokens ----------------------------------------- */
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: #ffffff;
+  --card-foreground: var(--ink);
+  --popover: #ffffff;
+  --popover-foreground: var(--ink);
+  --primary: var(--ink);
+  --primary-foreground: var(--paper);
+  --secondary: var(--paper-2);
+  --secondary-foreground: var(--ink);
+  --muted: var(--paper-2);
+  --muted-foreground: var(--ink-soft);
+  --accent: var(--paper-2);
+  --accent-foreground: var(--ink);
+  --destructive: #d93611;
+  --border: var(--line);
+  --input: var(--line-strong);
+  --ring: rgba(18, 17, 16, 0.45);
+
+  --chart-1: var(--vermilion);
+  --chart-2: #121110;
+  --chart-3: #7c8471;
+  --chart-4: #c2b8a3;
+  --chart-5: #8b8781;
+
+  --sidebar: #ffffff;
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: var(--ink);
+  --sidebar-primary-foreground: var(--paper);
+  --sidebar-accent: var(--paper-2);
+  --sidebar-accent-foreground: var(--ink);
+  --sidebar-border: var(--line);
+  --sidebar-ring: rgba(18, 17, 16, 0.35);
 }
 
+/* Kept so a stray `.dark` never explodes — an inverted editorial variant. */
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --paper: #101010;
+  --paper-2: #191918;
+  --paper-3: #232322;
+  --ink: #f1f0ee;
+  --ink-soft: #a8a49e;
+  --ink-faint: #6e6a65;
+  --line: rgba(241, 240, 238, 0.14);
+  --line-strong: rgba(241, 240, 238, 0.28);
+
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: #171716;
+  --card-foreground: var(--ink);
+  --popover: #171716;
+  --popover-foreground: var(--ink);
+  --primary: var(--ink);
+  --primary-foreground: var(--paper);
+  --secondary: var(--paper-2);
+  --secondary-foreground: var(--ink);
+  --muted: var(--paper-2);
+  --muted-foreground: var(--ink-soft);
+  --accent: var(--paper-2);
+  --accent-foreground: var(--ink);
+  --border: var(--line);
+  --input: var(--line-strong);
+  --ring: rgba(241, 240, 238, 0.4);
+
+  --sidebar: #171716;
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: var(--ink);
+  --sidebar-primary-foreground: var(--paper);
+  --sidebar-accent: var(--paper-2);
+  --sidebar-accent-foreground: var(--ink);
+  --sidebar-border: var(--line);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+
+  /*
+   * Lenis drives scrolling, so native smooth-scroll must stay off or the two
+   * fight each other. `.lenis-stopped` locks the page for modals/menus.
+   */
+  html {
+    scroll-behavior: auto;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  html.lenis,
+  html.lenis body {
+    height: auto;
+  }
+
+  .lenis.lenis-smooth {
+    scroll-behavior: auto !important;
+  }
+
+  .lenis.lenis-stopped {
+    overflow: hidden;
+  }
+
+  /* Nested scrollers opt out with data-lenis-prevent. */
+  .lenis.lenis-smooth [data-lenis-prevent] {
+    overscroll-behavior: contain;
+  }
+
+  /* Stops embedded iframes from swallowing wheel events mid-scroll. */
+  .lenis.lenis-smooth iframe {
+    pointer-events: none;
+  }
+
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "kern" 1, "liga" 1, "cv11" 1;
   }
-  html {
-    @apply font-sans;
+
+  ::selection {
+    background: var(--vermilion);
+    color: var(--vermilion-ink);
+  }
+
+  h1, h2, h3, h4 {
+    font-family: var(--font-display-face), var(--font-geist-sans), sans-serif;
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  /* Hairline scrollbar that reads as part of the page, not the OS. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--line-strong) transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--line-strong);
+    border-radius: 999px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--ink-faint);
+    background-clip: content-box;
+  }
+}
+
+@layer components {
+  /* --- typography ------------------------------------------------------- */
+
+  .display {
+    font-family: var(--font-display-face), var(--font-geist-sans), sans-serif;
+    font-weight: 500;
+    letter-spacing: -0.035em;
+    line-height: 0.94;
+  }
+
+  .display-tight {
+    font-family: var(--font-display-face), var(--font-geist-sans), sans-serif;
+    font-weight: 500;
+    letter-spacing: -0.045em;
+    line-height: 0.88;
+  }
+
+  /* Italic serif word dropped into a grotesk headline. */
+  .serif-accent {
+    font-family: var(--font-serif-face), Georgia, serif;
+    font-style: italic;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+  }
+
+  .eyebrow {
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 11px;
+    line-height: 1;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--ink-faint);
+  }
+
+  .mono-label {
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+
+  /* --- surfaces --------------------------------------------------------- */
+
+  .surface {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+  }
+
+  .surface-hover {
+    transition:
+      border-color 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+      transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: transform;
+  }
+
+  .surface-hover:hover {
+    border-color: var(--line-strong);
+    transform: translate3d(0, -3px, 0);
+  }
+
+  /* Inverted block used to break the page rhythm. */
+  .ink-block {
+    background: var(--ink);
+    color: var(--paper);
+  }
+
+  .ink-block .eyebrow,
+  .ink-block .mono-label {
+    color: rgba(241, 240, 238, 0.55);
+  }
+
+  .hairline {
+    border-top: 1px solid var(--line);
+  }
+
+  /*
+   * Back-compat aliases. The old theme's class names are still referenced in
+   * a few places; they now resolve to the editorial surface instead of glass.
+   */
+  .glass,
+  .glass-strong,
+  .widget {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+  }
+
+  .widget-hover {
+    transition:
+      border-color 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+      transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .widget-hover:hover {
+    border-color: var(--line-strong);
+    transform: translate3d(0, -3px, 0);
+  }
+
+  .glass-edge {
+    position: relative;
+  }
+
+  .dock-surface {
+    background: var(--card);
+    border: 1px solid var(--line);
+  }
+
+  .text-gradient {
+    color: var(--ink);
+    background: none;
+    -webkit-background-clip: initial;
+    background-clip: initial;
+  }
+
+  /* --- pills / status --------------------------------------------------- */
+
+  .pill {
+    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium;
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    letter-spacing: 0.02em;
+  }
+
+  .pill-success {
+    background: rgba(72, 111, 72, 0.1);
+    color: #3f6b40;
+  }
+
+  .pill-info {
+    background: rgba(18, 17, 16, 0.06);
+    color: var(--ink);
+  }
+
+  .pill-warn {
+    background: rgba(255, 74, 28, 0.12);
+    color: #c4390f;
+  }
+
+  .pill-muted {
+    background: var(--paper-2);
+    color: var(--ink-soft);
+  }
+
+  .dark .pill-success {
+    background: rgba(140, 190, 140, 0.14);
+    color: #9dcb9e;
+  }
+  .dark .pill-info {
+    background: rgba(241, 240, 238, 0.1);
+    color: var(--ink);
+  }
+  .dark .pill-warn {
+    background: rgba(255, 122, 80, 0.15);
+    color: #ff9b76;
+  }
+
+  /* --- buttons ---------------------------------------------------------- */
+
+  /*
+   * Label slides up and its clone slides in from below on hover — the
+   * signature interaction on the reference site. Pure transform, so it stays
+   * on the compositor.
+   */
+  .btn-slide {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border-radius: 999px;
+    white-space: nowrap;
+    isolation: isolate;
+  }
+
+  .btn-slide__inner {
+    display: grid;
+    grid-template-rows: 1fr;
+    overflow: hidden;
+  }
+
+  .btn-slide__stack {
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: transform;
+  }
+
+  .btn-slide:hover .btn-slide__stack,
+  .btn-slide:focus-visible .btn-slide__stack {
+    transform: translate3d(0, -50%, 0);
+  }
+
+  .btn-slide__row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    height: 1.25em;
+    line-height: 1.25em;
+  }
+
+  /* Animated underline for text links. */
+  .link-underline {
+    position: relative;
+    display: inline-block;
+  }
+
+  .link-underline::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -2px;
+    width: 100%;
+    height: 1px;
+    background: currentColor;
+    transform: scaleX(0);
+    transform-origin: right;
+    transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .link-underline:hover::after,
+  .link-underline:focus-visible::after {
+    transform: scaleX(1);
+    transform-origin: left;
+  }
+
+  /* --- decorative ------------------------------------------------------- */
+
+  .grid-backdrop {
+    background-image:
+      linear-gradient(to right, var(--line) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--line) 1px, transparent 1px);
+    background-size: 84px 84px;
+    mask-image: radial-gradient(ellipse 70% 55% at 50% 0%, #000 10%, transparent 85%);
+    -webkit-mask-image: radial-gradient(ellipse 70% 55% at 50% 0%, #000 10%, transparent 85%);
+    opacity: 0.7;
+  }
+
+  .noise {
+    position: relative;
+  }
+
+  .noise::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.035;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .live-dot {
+    animation: blink-dot 2.4s ease-in-out infinite;
+  }
+
+  /* --- marquee ---------------------------------------------------------- */
+
+  .marquee {
+    display: flex;
+    overflow: hidden;
+    user-select: none;
+    mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  }
+
+  .marquee__track {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    min-width: 100%;
+    animation: marquee var(--marquee-duration, 40s) linear infinite;
+    will-change: transform;
+  }
+
+  .marquee[data-direction="right"] .marquee__track {
+    animation-name: marquee-reverse;
+  }
+
+  .marquee:hover .marquee__track {
+    animation-play-state: paused;
+  }
+
+  .marquee--bleed {
+    mask-image: none;
+    -webkit-mask-image: none;
+  }
+}
+
+@layer utilities {
+  /* --- scroll reveal ---------------------------------------------------- */
+
+  /*
+   * Reveals are driven by one shared IntersectionObserver flipping
+   * `data-revealed`, so the browser animates them off the main thread and
+   * there is zero per-frame JS.
+   */
+  [data-reveal] {
+    opacity: 0;
+    transition:
+      opacity 0.9s cubic-bezier(0.22, 1, 0.36, 1),
+      transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+    transition-delay: var(--reveal-delay, 0ms);
+    will-change: opacity, transform;
+  }
+
+  [data-reveal="up"] { transform: translate3d(0, 28px, 0); }
+  [data-reveal="down"] { transform: translate3d(0, -24px, 0); }
+  [data-reveal="left"] { transform: translate3d(28px, 0, 0); }
+  [data-reveal="right"] { transform: translate3d(-28px, 0, 0); }
+  [data-reveal="fade"] { transform: none; }
+  [data-reveal="scale"] { transform: scale(0.94); }
+
+  [data-reveal][data-revealed="true"] {
+    opacity: 1;
+    transform: none;
+    will-change: auto;
+  }
+
+  /* Word-by-word headline reveal: each word rides up out of a mask. */
+  .split-word {
+    display: inline-block;
+    overflow: hidden;
+    vertical-align: top;
+    padding-bottom: 0.08em;
+    margin-bottom: -0.08em;
+  }
+
+  .split-word > span {
+    display: inline-block;
+    transform: translate3d(0, 110%, 0);
+    transition: transform 0.95s cubic-bezier(0.22, 1, 0.36, 1);
+    transition-delay: var(--word-delay, 0ms);
+    will-change: transform;
+  }
+
+  [data-revealed="true"] .split-word > span {
+    transform: translate3d(0, 0, 0);
+    will-change: auto;
+  }
+
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .text-balance { text-wrap: balance; }
+
+  .text-vermilion { color: var(--vermilion); }
+  .bg-vermilion { background: var(--vermilion); color: var(--vermilion-ink); }
+  .border-vermilion { border-color: var(--vermilion); }
+}
+
+/* Anyone who asked for less motion gets a completely static page. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  [data-reveal] {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .split-word > span {
+    transform: none !important;
   }
 }

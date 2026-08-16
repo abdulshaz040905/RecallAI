@@ -1,123 +1,115 @@
-import React from 'react'
-import { PastMeeting } from '../hooks/useMeetings'
-import { Clock, ExternalLink, Video } from 'lucide-react'
+'use client'
+
 import { format } from 'date-fns'
-import { Button } from '@/components/ui/button'
+import { PastMeeting } from '../hooks/useMeetings'
 import AttendeeAvatars from './AttendeeAvatars'
+import { EmptyState } from '../../components/page-shell'
 
 interface PastMeetingsProps {
     pastMeetings: PastMeeting[]
     pastLoading: boolean
     onMeetingClick: (id: string) => void
-    getAttendeeList: (attendees: any) => string[]
+    getAttendeeList: (attendees: unknown) => string[]
     getInitials: (name: string) => string
 }
 
-function PastMeetings({
+function durationLabel(start: Date | string, end: Date | string) {
+    const minutes = Math.max(
+        0,
+        Math.round((new Date(end).getTime() - new Date(start).getTime()) / 60000)
+    )
+
+    if (!minutes) return null
+    if (minutes < 60) return `${minutes}m`
+
+    const hours = Math.floor(minutes / 60)
+    const rest = minutes % 60
+    return rest ? `${hours}h ${rest}m` : `${hours}h`
+}
+
+export default function PastMeetings({
     pastMeetings,
     pastLoading,
     onMeetingClick,
     getAttendeeList,
     getInitials
 }: PastMeetingsProps) {
-
     if (pastLoading) {
         return (
-            <div className='space-y-4'>
-                {[1, 2, 3].map((i) => (
-                    <div key={i} className='bg-card rounded-lg p-4 border border-border animate-pulse'>
-                        <div className='flex justify-between items-start mb-3'>
-                            <div className='flex items-center gap-3 flex-1'>
-                                <div className='h-6 bg-muted rounded w-48'></div>
-                                <div className='flex -space-x-2'>
-
-                                    {[1, 2, 3].map((j) => (
-                                        <div key={j} className='w-6 h-6 rounded-full bg-muted'></div>
-                                    ))}
-                                </div>
-
-                            </div>
-                            <div className='h-5 bg-muted rounded w-20'></div>
-                        </div>
-
-                        <div className='h-4 bg-muted rounded w-3/4 mb-3'></div>
-                        <div className='h-4 bg-muted rounded w-1/2 mb-3'></div>
-                        <div className='h-6 bg-muted rounded w-24'></div>
-
-                    </div>
+            <div className="space-y-2">
+                {[0, 1, 2].map((i) => (
+                    <div
+                        key={i}
+                        className="h-[104px] animate-pulse rounded-[10px] border border-line bg-paper-2"
+                    />
                 ))}
-
             </div>
         )
     }
 
     if (pastMeetings.length === 0) {
         return (
-            <div className='bg-card rounded-lg p-8 text-center border border-border'>
-                <Video className='h-12 w-12 mx-auto text-muted-foreground mb-4' />
-                <h3 className='text-lg font-medium mb-2 text-foreground'>No past meetings</h3>
-                <p className='text-muted-foreground'>Your completed meetings will appear here</p>
-            </div>
+            <EmptyState
+                title="No past meetings yet"
+                description="Once the bot sits in on a call, the recording, transcript and summary show up right here."
+            />
         )
     }
 
     return (
-        <div className='space-y-4'>
-            {pastMeetings.map((meeting) => (
-                <div
-                    key={meeting.id}
-                    className='bg-card rounded-lg p-4 border border-border hover:shadow-md transition-shadow cursor-pointer'
-                    onClick={() => onMeetingClick(meeting.id)}
-                >
-                    <div className='flex justify-between items-start mb-3'>
-                        <div className='flex items-center gap-3 flex-1'>
-                            <h3 className='font-semibold text-lg text-foreground'>
-                                {meeting.title}
-                            </h3>
-                            {meeting.attendees && (
-                                <AttendeeAvatars
-                                    attendees={meeting.attendees}
-                                    getAttendeeList={getAttendeeList}
-                                    getInitials={getInitials}
-                                />
-                            )}
-                        </div>
-                        <span className='text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded-full'>
-                            Completed
-                        </span>
-                    </div>
-                    {meeting.description && (
-                        <p className='text-sm text-muted-foreground mb-3'>{meeting.description}</p>
-                    )}
+        <ul>
+            {pastMeetings.map((meeting, i) => {
+                const duration = durationLabel(meeting.startTime, meeting.endTime)
 
-                    <div className='text-sm text-muted-foreground mb-3'>
-                        <div className='flex items-center gap-2'>
-                            <Clock className='h-4 w-4' />
-                            <span>
-                                {format(new Date(meeting.startTime), 'PPp')} - {format(new Date(meeting.endTime), 'pp')}
-                            </span>
-                        </div>
-                    </div>
-
-                    <div
-                        className='flex gap-2 mt-4'
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <Button
-                            className='flex items-center gap-1 px-3 py-1 bg-primary text-primary-foreground text-xs rounded hover:bg-primary/90 transition-colors h-6 cursor-pointer'
+                return (
+                    <li key={meeting.id} className="border-b border-line first:border-t">
+                        <button
+                            type="button"
                             onClick={() => onMeetingClick(meeting.id)}
+                            className="group flex w-full cursor-pointer gap-5 py-5 text-left transition-[padding] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] sm:group-hover:pl-2 sm:hover:pl-2"
                         >
-                            <ExternalLink className='h-3 w-3' />
-                            View Details
-                        </Button>
+                            <span className="w-6 shrink-0 pt-1 font-mono text-[10px] tabular-nums text-ink-faint">
+                                {String(i + 1).padStart(2, '0')}
+                            </span>
 
-                    </div>
+                            <span className="min-w-0 flex-1">
+                                <span className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                                    <span className="truncate font-display text-[17px] font-medium tracking-[-0.025em]">
+                                        {meeting.title}
+                                    </span>
+                                    {meeting.transcriptReady && (
+                                        <span className="pill pill-info">Transcript</span>
+                                    )}
+                                </span>
 
-                </div>
-            ))}
+                                {meeting.description && (
+                                    <span className="mt-1.5 line-clamp-2 block text-[13px] leading-relaxed text-ink-soft">
+                                        {meeting.description}
+                                    </span>
+                                )}
 
-        </div>
+                                <span className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+                                    <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-ink-faint">
+                                        {format(new Date(meeting.startTime), 'EEE d MMM · HH:mm')}
+                                        {duration && ` · ${duration}`}
+                                    </span>
+                                    {meeting.attendees ? (
+                                        <AttendeeAvatars
+                                            attendees={meeting.attendees}
+                                            getAttendeeList={getAttendeeList}
+                                            getInitials={getInitials}
+                                        />
+                                    ) : null}
+                                </span>
+                            </span>
+
+                            <span className="shrink-0 self-center pl-2 font-mono text-[10px] uppercase tracking-[0.1em] text-ink-faint opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                                Open →
+                            </span>
+                        </button>
+                    </li>
+                )
+            })}
+        </ul>
     )
 }
-
-export default PastMeetings

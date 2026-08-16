@@ -1,53 +1,68 @@
 'use client'
 
-import { Button } from '@/components/ui/button'
 import { SignUpButton, useUser } from '@clerk/nextjs'
-import { ArrowRight, Star } from 'lucide-react'
-import Link from 'next/link'
-import React from 'react'
+import { Marquee } from '../motion/marquee'
+import { Reveal } from '../motion/reveal'
+import { SplitText } from '../motion/split-text'
+import { Action, ArrowMark } from './parts'
 
-function CTASection() {
+export default function CTASection() {
     const { isSignedIn } = useUser()
+
     return (
-        <section className='py-20 bg-black'>
-            <div className='max-w-4xl mx-auto px-4 text-center'>
-                <h2 className='text-3xl md:text-4xl font-bold text-white mb-4'>
-                    Ready to{' '}
-                    <span className="bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600  bg-clip-text text-transparent">
-                        revolutionize your meetings?
-                    </span>
-                </h2>
-                <p className="text-lg bg-gradient-to-r from-gray-300 to-gray-500 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(156,163,175,0.3)] mb-8">
-                    Join thousands of teams aldready using MeetingBot to save time.
-                </p>
-                {isSignedIn ? (
-                    <Button asChild size="lg" className='bg-blue-600 hover:bg-blue-700 px-8 py-4'>
-                        <Link href="/home" className='group'>
-                            <span>Dashboard</span>
-                            <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-                        </Link>
-                    </Button>
-                ) : (
-                    <SignUpButton>
-                        <Button size="lg" className="bg-blue-600 hover:bg-blue-700 px-8 py-4 group">
-                            <span>Start Your Free Trail</span>
-                            <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-                        </Button>
-                    </SignUpButton>
-                )}
-                <div className="flex items-center justify-center space-x-1 mt-6">
-                    <Star className="w-5 h-5 text-yellow-400 fill-current" />
-                    <Star className="w-5 h-5 text-yellow-400 fill-current" />
-                    <Star className="w-5 h-5 text-yellow-400 fill-current" />
-                    <Star className="w-5 h-5 text-yellow-400 fill-current" />
-                    <Star className="w-5 h-5 text-yellow-400 fill-current" />
-                    <span className='ml-2 text-gray-500'>
-                        4.9/5 from 2+ reviews
-                    </span>
+        <section className="ink-block noise relative overflow-hidden">
+            <div className="relative mx-auto max-w-[1400px] px-5 pb-16 pt-24 sm:px-8 sm:pb-20 sm:pt-32">
+                <div className="grid gap-12 lg:grid-cols-[1fr_auto] lg:items-end">
+                    <SplitText
+                        as="h2"
+                        className="display-tight max-w-[13ch] text-[clamp(2.75rem,8vw,7rem)] text-paper"
+                        stagger={50}
+                    >
+                        {['Stop taking', 'notes.']}
+                    </SplitText>
+
+                    <Reveal direction="up" delay={140} className="lg:pb-4">
+                        <p className="max-w-[34ch] text-[15px] leading-[1.65] text-paper/60">
+                            Two minutes to set up. Your next meeting writes itself up while
+                            you actually pay attention to it.
+                        </p>
+
+                        <div className="mt-8 flex flex-wrap gap-3">
+                            {isSignedIn ? (
+                                <Action href="/home" tone="paper" size="lg">
+                                    Open dashboard
+                                    <ArrowMark />
+                                </Action>
+                            ) : (
+                                <SignUpButton mode="modal">
+                                    <span>
+                                        <Action tone="paper" size="lg">
+                                            Get started free
+                                            <ArrowMark />
+                                        </Action>
+                                    </span>
+                                </SignUpButton>
+                            )}
+                            <Action
+                                href="#pricing"
+                                size="lg"
+                                className="border border-paper/25 text-paper hover:bg-paper hover:text-ink"
+                            >
+                                Compare plans
+                            </Action>
+                        </div>
+                    </Reveal>
                 </div>
+            </div>
+
+            {/* Giant wordmark bleeding off both edges. */}
+            <div className="pointer-events-none select-none pb-6 opacity-[0.13]">
+                <Marquee duration={40} bleed>
+                    <span className="shrink-0 pr-14 font-display text-[16vw] leading-[0.85] tracking-[-0.05em] text-paper">
+                        Recall AI —
+                    </span>
+                </Marquee>
             </div>
         </section>
     )
 }
-
-export default CTASection

@@ -1,24 +1,71 @@
-import { Bot } from 'lucide-react'
-import React from 'react'
+import Link from 'next/link'
+import { Reveal } from '../motion/reveal'
+import { Wordmark } from './parts'
 
-function Footer() {
+const columns = [
+    {
+        title: 'Product',
+        links: [
+            { label: 'Features', href: '#features' },
+            { label: 'How it works', href: '#how-it-works' },
+            { label: 'Integrations', href: '#integrations' },
+            { label: 'Pricing', href: '#pricing' }
+        ]
+    },
+    {
+        title: 'App',
+        links: [
+            { label: 'Dashboard', href: '/home' },
+            { label: 'Search meetings', href: '/search' },
+            { label: 'Workspaces', href: '/workspaces' },
+            { label: 'Chat with AI', href: '/chat' }
+        ]
+    },
+    {
+        title: 'Account',
+        links: [
+            { label: 'Settings', href: '/settings' },
+            { label: 'Sign in', href: '/sign-in' },
+            { label: 'Sign up', href: '/sign-up' }
+        ]
+    }
+]
+
+export default function Footer() {
     return (
-        <footer className='border-t border-gray-800 py-5 bg-black'>
-            <div className='max-w-6xl mx-auto px-4'>
-                <div className='flex flex-col md:flex-row justify-between items-center'>
-                    <div className='flex items-center space-x-2 mb-4 md:mb-0'>
-                        <div className='w-8 h-8 bg-gray-800 rounded-lg flex items-center justify-center'>
-                            <Bot className='w-5 h-5 text-gray-300' />
-                        </div>
-                        <span className='text-xl font-bold text-white'>MeetingBot</span>
-                    </div>
-                    <div className='text-gray-500 text-sm'>
-                        &copy; {new Date().getFullYear()} MeetingBot. Made with ❤️ for better meetings.
-                    </div>
-                </div>
+        <footer className="mx-auto max-w-[1400px] px-5 py-16 sm:px-8">
+            <div className="grid gap-12 border-t border-line pt-14 sm:grid-cols-2 lg:grid-cols-[1.4fr_repeat(3,1fr)] lg:gap-16">
+                <Reveal direction="up">
+                    <Wordmark />
+                    <p className="mt-4 max-w-[34ch] text-[14px] leading-[1.65] text-ink-soft">
+                        Meeting intelligence that records, transcribes, translates and routes
+                        your follow-ups automatically.
+                    </p>
+                </Reveal>
+
+                {columns.map((column, i) => (
+                    <Reveal key={column.title} direction="up" delay={(i + 1) * 70}>
+                        <p className="eyebrow mb-5">{column.title}</p>
+                        <ul className="space-y-3">
+                            {column.links.map((link) => (
+                                <li key={link.label}>
+                                    <Link
+                                        href={link.href}
+                                        className="link-underline text-[14px] text-ink-soft transition-colors hover:text-ink"
+                                    >
+                                        {link.label}
+                                    </Link>
+                                </li>
+                            ))}
+                        </ul>
+                    </Reveal>
+                ))}
+            </div>
+
+            <div className="mt-14 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-6 font-mono text-[11px] uppercase tracking-[0.08em] text-ink-faint">
+                <span>© {new Date().getFullYear()} Recall AI</span>
+                <span>Next.js · Prisma · Google Gemini</span>
             </div>
         </footer>
     )
 }
-
-export default Footer

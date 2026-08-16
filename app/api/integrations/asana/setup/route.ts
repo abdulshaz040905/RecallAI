@@ -112,3 +112,4 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Failed to setup project' }, { status: 500 })
     }
 }
+

@@ -1,8 +1,8 @@
 import { prisma } from "@/lib/db";
 import { auth } from "@clerk/nextjs/server";
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
-export async function GET(request: NextRequest) {
+export async function GET() {
     try {
         const { userId } = await auth()
 
@@ -28,6 +28,7 @@ export async function GET(request: NextRequest) {
         }
         return NextResponse.json(user)
     } catch (error) {
-        return NextResponse.json({ error: 'failed to fetch usaged' }, { status: 500 })
+        console.error('[usage] failed to fetch usage:', error)
+        return NextResponse.json({ error: 'Failed to fetch usage' }, { status: 500 })
     }
 }

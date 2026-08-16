@@ -1,36 +1,22 @@
 import { cn } from "@/lib/utils";
 import { ComponentPropsWithoutRef } from "react";
 
-export interface AnimatedGradientTextProps
-  extends ComponentPropsWithoutRef<"div"> {
-  speed?: number;
-  colorFrom?: string;
-  colorTo?: string;
-}
+/**
+ * Kept as a thin wrapper so any stray import still compiles.
+ *
+ * The editorial design system has no animated gradients — headlines are solid
+ * ink with an italic serif accent instead — so this renders plain emphasised
+ * text rather than the old shifting gradient.
+ */
+export type AnimatedGradientTextProps = ComponentPropsWithoutRef<"span">;
 
 export function AnimatedGradientText({
   children,
   className,
-  speed = 1,
-  colorFrom = "#ffaa40",
-  colorTo = "#9c40ff",
   ...props
 }: AnimatedGradientTextProps) {
   return (
-    <span
-      style={
-        {
-          "--bg-size": `${speed * 300}%`,
-          "--color-from": colorFrom,
-          "--color-to": colorTo,
-        } as React.CSSProperties
-      }
-      className={cn(
-        `inline animate-gradient bg-gradient-to-r from-[var(--color-from)] via-[var(--color-to)] to-[var(--color-from)] bg-[length:var(--bg-size)_100%] bg-clip-text text-transparent`,
-        className,
-      )}
-      {...props}
-    >
+    <span className={cn("serif-accent", className)} {...props}>
       {children}
     </span>
   );

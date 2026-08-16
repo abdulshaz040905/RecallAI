@@ -3,15 +3,39 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum WorkspaceRole {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+  EXPIRED
+}
+
+// ---------------------------------------------------------------------------
+// Users
+// ---------------------------------------------------------------------------
 
 model User {
   id       String    @id
   clerkId  String    @unique
   email    String?
   name     String?
+  imageUrl String?
   meetings Meeting[]
 
   botName     String? @default("Meeting Bot")
@@ -28,16 +52,26 @@ model User {
   preferredChannelId   String?
   preferredChannelName String?
 
-  currentPlan          String    @default("free")
-  subscriptionStatus   String    @default("inactive")
-  stripeCustomerId     String?
-  stripeSubscriptionId String?
-  billingPeriodStart   DateTime?
-  meetingsThisMonth    Int       @default(0)
-  chatMessagesToday    Int       @default(0)
+  // Preferred language for transcript translation (BCP-47, e.g. "es", "pt-BR")
+  preferredLanguage String @default("en")
+
+  currentPlan            String    @default("free")
+  subscriptionStatus     String    @default("inactive")
+  razorpayCustomerId     String?
+  razorpaySubscriptionId String?   @unique
+  billingPeriodStart     DateTime?
+  meetingsThisMonth      Int       @default(0)
+  chatMessagesToday      Int       @default(0)
+
+  activeWorkspaceId String?
+  workspaceMembers  WorkspaceMember[]
+  ownedWorkspaces   Workspace[]       @relation("WorkspaceOwner")
+  sentInvites       WorkspaceInvite[] @relation("InviteSender")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([email])
 }
 
 model SlackInstallation {
@@ -52,15 +86,88 @@ model SlackInstallation {
   updatedAt     DateTime @updatedAt
 }
 
+// ---------------------------------------------------------------------------
+// Workspaces + role based access control
+// ---------------------------------------------------------------------------
+
+model Workspace {
+  id      String  @id @default(cuid())
+  name    String
+  slug    String  @unique
+  // Short description shown on the workspace switcher
+  about   String?
+  logo    String?
+  // Clerk id of the creator (mirrors ownerId for quick lookups)
+  ownerId String
+
+  owner    User              @relation("WorkspaceOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members  WorkspaceMember[]
+  invites  WorkspaceInvite[]
+  meetings Meeting[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ownerId])
+}
+
+model WorkspaceMember {
+  id          String        @id @default(cuid())
+  workspaceId String
+  userId      String
+  role        WorkspaceRole @default(MEMBER)
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  joinedAt  DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([workspaceId, userId])
+  @@index([userId])
+  @@index([workspaceId, role])
+}
+
+model WorkspaceInvite {
+  id          String        @id @default(cuid())
+  workspaceId String
+  email       String
+  role        WorkspaceRole @default(MEMBER)
+  token       String        @unique
+  status      InviteStatus  @default(PENDING)
+  invitedById String
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  invitedBy User      @relation("InviteSender", fields: [invitedById], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([workspaceId, email])
+  @@index([email, status])
+  @@index([token])
+}
+
+// ---------------------------------------------------------------------------
+// Meetings
+// ---------------------------------------------------------------------------
+
 model Meeting {
   id          String   @id @default(cuid())
   userId      String
+  workspaceId String?
   title       String
   description String?
   meetingUrl  String?
   startTime   DateTime
   endTime     DateTime
   attendees   Json?
+
+  // Denormalised for fast filtering / searching without touching JSON columns.
+  durationMinutes  Int      @default(0)
+  participantNames String[] @default([])
 
   calendarEventId String? @unique
   isFromCalendar  Boolean @default(false)
@@ -73,11 +180,15 @@ model Meeting {
   meetingEnded    Boolean @default(false)
   transcriptReady Boolean @default(false)
   transcript      Json?
+  // Flattened transcript used for full text search + translation source.
+  transcriptText  String? @db.Text
   recordingUrl    String?
   speakers        Json?
 
-  summary        String?
+  summary        String?   @db.Text
   actionItems    Json?
+  keyDecisions   Json?
+  topics         Json?
   processed      Boolean   @default(false)
   processedAt    DateTime?
   emailSent      Boolean   @default(false)
@@ -85,17 +196,25 @@ model Meeting {
   ragProcessed   Boolean   @default(false)
   ragProcessedAt DateTime?
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
 
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
   TranscriptChunk TranscriptChunk[]
+  translations    TranscriptTranslation[]
+
+  @@index([userId, meetingEnded, startTime(sort: Desc)])
+  @@index([workspaceId, startTime(sort: Desc)])
+  @@index([userId, durationMinutes])
+  @@index([startTime])
 }
 
 model UserIntegration {
   id           String    @id @default(cuid())
   userId       String
-  platform IntegrationPlatform
+  // trello | jira | asana | slack | notion | linear | salesforce | hubspot
+  platform     String
   accessToken  String    @db.Text
   refreshToken String?   @db.Text
   expiresAt    DateTime?
@@ -107,10 +226,21 @@ model UserIntegration {
   workspaceId String?
   domain      String?
 
+  // Platform specific destinations
+  databaseId  String? // Notion database used for action items
+  teamId      String? // Linear team id
+  instanceUrl String? // Salesforce instance url (per-org base URL)
+  portalId    String? // HubSpot portal / hub id
+  accountName String?
+
+  // Anything else a provider hands back that we may need later
+  metadata Json?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@unique([userId, platform])
+  @@index([userId])
 }
 
 model TranscriptChunk {
@@ -122,14 +252,35 @@ model TranscriptChunk {
   vectorId    String?
   createdAt   DateTime @default(now())
   meeting     Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  @@index([meetingId, chunkIndex])
 }
 
-enum IntegrationPlatform {
-  google
-  slack
-  jira
-  trello
-  notion
-  asana
-  clickup
+// ---------------------------------------------------------------------------
+// Transcript translation cache (Google Cloud Translation API)
+// ---------------------------------------------------------------------------
+
+model TranscriptTranslation {
+  id        String @id @default(cuid())
+  meetingId String
+  // BCP-47 target language code, e.g. "es", "hi", "pt-BR"
+  language  String
+
+  // Translated flat transcript text
+  translatedText    String  @db.Text
+  // Translated segment array mirroring Meeting.transcript so the UI can keep
+  // speaker attribution and timestamps.
+  segments          Json?
+  translatedSummary String? @db.Text
+
+  detectedSourceLanguage String?
+  characterCount         Int     @default(0)
+
+  meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([meetingId, language])
+  @@index([meetingId])
 }

@@ -1,10 +1,9 @@
 import { prisma } from "@/lib/db";
-import { canUserChat, incrementChatUsage, incrementMeetingUsage } from "@/lib/usage";
+import { incrementMeetingUsage } from "@/lib/usage";
 import { auth } from "@clerk/nextjs/server";
-import { error } from "console";
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
-export async function POST(request: NextRequest) {
+export async function POST() {
     try {
         const { userId } = await auth()
         if (!userId) {
@@ -28,6 +27,7 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json({ success: true })
     } catch (error) {
-        return NextResponse.json({ error: 'failed to incrmeent usage' }, { status: 500 })
+        console.error('[usage] failed to increment meeting usage:', error)
+        return NextResponse.json({ error: 'Failed to increment usage' }, { status: 500 })
     }
 }

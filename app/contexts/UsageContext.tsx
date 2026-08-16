@@ -128,6 +128,8 @@ export function UsageProvider({ children }: { children: ReactNode }) {
         } else if (isLoaded && !userId) {
             setLoading(false)
         }
+        // fetchUsage is stable for a given user; re-running on identity change only.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [userId, isLoaded])
 
 

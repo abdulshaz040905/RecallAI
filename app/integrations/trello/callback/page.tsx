@@ -48,16 +48,17 @@ export default function TrelloCallback() {
     }, [router])
 
     return (
-        <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex min-h-screen items-center justify-center bg-paper px-6">
             <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-                <h2 className="text-xl font-semibold text-foreground mb-2">
-                    Connecting trello
+                <p className="eyebrow mb-4">Trello</p>
+                <h2 className="font-display text-[26px] font-medium tracking-[-0.035em]">
+                    Connecting your account
                 </h2>
-                <p className="text-muted-foreground">{status}</p>
-
+                <p className="mt-2.5 flex items-center justify-center gap-2 text-[13px] text-ink-soft">
+                    <span className="live-dot h-1.5 w-1.5 rounded-full bg-vermilion" />
+                    {status}
+                </p>
             </div>
-
         </div>
     )
 }

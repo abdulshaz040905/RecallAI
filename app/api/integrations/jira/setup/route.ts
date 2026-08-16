@@ -75,7 +75,6 @@ export async function POST(request: NextRequest) {
 
         const jira = new JiraAPI()
 
-        let finalProjectId = projectId
         let finalProjectName = projectName
         let finalProjectKey = projectKey
 
@@ -88,7 +87,6 @@ export async function POST(request: NextRequest) {
                     integration.workspaceId,
                     projectName,
                     key)
-                finalProjectId = newProject.id
                 finalProjectName = projectName
                 finalProjectKey = newProject.key
             } catch (error) {
@@ -101,7 +99,9 @@ export async function POST(request: NextRequest) {
 
         else if (projectId) {
             const projects = await jira.getProjects(validToken, integration.workspaceId)
-            const selectedProject = projects.values.find(p => p.id === projectId)
+            const selectedProject = projects.values.find(
+                (p: { id: string; key: string; name: string }) => p.id === projectId
+            )
 
             if (!selectedProject) {
                 return NextResponse.json({ error: 'project not found' }, { status: 404 })
@@ -135,3 +135,4 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Failed to setup project' }, { status: 500 })
     }
 }
+

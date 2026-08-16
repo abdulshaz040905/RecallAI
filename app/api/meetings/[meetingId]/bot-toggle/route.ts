@@ -1,91 +1,49 @@
 import { prisma } from "@/lib/db";
 import { auth } from "@clerk/nextjs/server";
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
-export async function GET(
-    request: NextRequest,
+export async function POST(
+    request: Request,
     { params }: { params: Promise<{ meetingId: string }> }
 ) {
     try {
-        const { userId: clerkUserId } = await auth()
+        const { userId } = await auth()
+        if (!userId) {
+            return NextResponse.json({ error: "not authed" }, { status: 401 })
+        }
 
         const { meetingId } = await params
+        const { botScheduled } = await request.json()
 
-        const meeting = await prisma.meeting.findUnique({
+        const user = await prisma.user.findUnique({
             where: {
-                id: meetingId
-            },
-            include: {
-                user: {
-                    select: {
-                        id: true,
-                        name: true,
-                        email: true,
-                        clerkId: true
-                    }
-                }
+                clerkId: userId
             }
         })
 
-        if (!meeting) {
-            return NextResponse.json({ error: 'meeting not found' }, { status: 404 })
+        if (!user) {
+            return NextResponse.json({ error: "user not found" }, { status: 404 })
         }
 
-        const responseData = {
-            ...meeting,
-            isOwner: clerkUserId === meeting.user?.clerkId
-        }
-
-        return NextResponse.json(responseData)
-    } catch (error) {
-        console.error('api error:', error)
-        return NextResponse.json({ error: 'failed to fetch meeting' }, { status: 500 })
-    }
-}
-
-export async function DELETE(
-    request: NextRequest,
-    { params }: { params: { meetingId: string } }
-) {
-    try {
-        const { userId } = await auth()
-
-        if (!userId) {
-            return NextResponse.json({ error: 'not authenticated' }, { status: 401 })
-        }
-
-        const { meetingId } = params
-
-        const meeting = await prisma.meeting.findUnique({
+        const meeting = await prisma.meeting.update({
             where: {
-                id: meetingId
+                id: meetingId,
+                userId: user.id
             },
-            include: {
-                user: true
-            }
-        })
-
-        if (!meeting) {
-            return NextResponse.json({ error: 'meeting not found' }, { status: 404 })
-        }
-
-        if (meeting.user.clerkId !== userId) {
-            return NextResponse.json({ error: 'not authorized to delete this meeting' }, { status: 403 })
-        }
-
-        await prisma.meeting.delete({
-            where: {
-                id: meetingId
+            data: {
+                botScheduled: botScheduled
             }
         })
 
         return NextResponse.json({
             success: true,
-            message: 'meeting deleted succesfully'
+            botScheduled: meeting.botScheduled,
+            message: `Bot ${botScheduled ? 'enabled' : 'disabled'} for this meeting`
         })
-
     } catch (error) {
-        console.error('failed to delere meeting', error)
-        return NextResponse.json({ error: 'failed to delete meeting' }, { status: 500 })
+        console.error('[bot-toggle] failed:', error)
+        return NextResponse.json({
+            error: "Failed to update bot status"
+        }, { status: 500 })
     }
 }

@@ -1,52 +1,87 @@
 import Image from 'next/image'
-import React from 'react'
+import { Marquee } from '../motion/marquee'
+import { Reveal } from '../motion/reveal'
+import { SplitText } from '../motion/split-text'
+import { SectionLabel } from './parts'
 
 const integrations = [
-    { name: "Slack", image: "slack.png" },
-    { name: "Asana", image: "asana.png" },
-    { name: "Jira", image: "jira.png" },
-    { name: "Trello", image: "trello.png" },
-    { name: "Google Calendar", image: "gcal.png" }
+    { name: 'Notion', logo: '/notion.svg' },
+    { name: 'Linear', logo: '/linear.svg' },
+    { name: 'Salesforce', logo: '/salesforce.svg' },
+    { name: 'HubSpot', logo: '/hubspot.svg' },
+    { name: 'Jira', logo: '/jira.png' },
+    { name: 'Asana', logo: '/asana.png' },
+    { name: 'Trello', logo: '/trello.png' },
+    { name: 'Slack', logo: '/slack.png' },
+    { name: 'Google Calendar', logo: '/gcal.png' }
 ]
 
-function IntegrationsSection() {
+function LogoRow() {
     return (
-        <section className='py-20 bg-black'>
-            <div className='max-w-6xl mx-auto px-4'>
-                <div className='text-center mb-16'>
-                    <h2 className='text-3xl md:text-4xl font-bold text-white mb-4'>
-                        Seamless{' '}
-                        <span className="bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600  bg-clip-text text-transparent">
-                            Integrations
-                        </span>
-                    </h2>
-                    <p className="text-lg bg-gradient-to-r from-gray-300 to-gray-500 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(156,163,175,0.3)]">
-                        Connect with the tools you aldready use and love
-                    </p>
-                </div>
-                <div className='flex flex-wrap justify-center items-center gap-8 md:gap-12'>
-                    {integrations.map((integration, index) => (
-                        <div
-                            key={index}
-                            className='text-center group cursor-pointer'
-                        >
-                            <div className='w-16 h-16 mx-auto mb-4 bg-white/5 backdrop-blur-sm rounded-xl p-3 border border-gray-800/50 transition-all duration-300 group-hover:scale-110 group-hover:bg-white/10 group-hover:border-gray-700'>
-                                <Image
-                                    src={`/${integration.image}`}
-                                    alt={`${integration.name} logo`}
-                                    width={64}
-                                    height={64}
-                                    className='w-full h-full object-contain'
-                                />
-                            </div>
-                            <p className='text-sm font-medium text-white'>{integration.name}</p>
-                        </div>
-                    ))}
-                </div>
-
-            </div>
-        </section>
+        <>
+            {integrations.map((integration) => (
+                <span
+                    key={integration.name}
+                    className="flex shrink-0 items-center gap-3 border-r border-line px-9 py-6"
+                >
+                    <span className="relative h-6 w-6">
+                        <Image
+                            src={integration.logo}
+                            alt=""
+                            fill
+                            sizes="24px"
+                            className="object-contain"
+                        />
+                    </span>
+                    <span className="whitespace-nowrap font-display text-[17px] tracking-[-0.02em] text-ink-soft">
+                        {integration.name}
+                    </span>
+                </span>
+            ))}
+        </>
     )
 }
 
-export default IntegrationsSection
+export default function IntegrationsSection() {
+    return (
+        <section id="integrations" className="py-24 sm:py-32">
+            <div className="mx-auto max-w-[1400px] px-5 sm:px-8">
+                <div className="grid gap-10 lg:grid-cols-[minmax(0,26rem)_1fr] lg:gap-20">
+                    <div>
+                        <Reveal direction="fade">
+                            <SectionLabel index="03">Integrations</SectionLabel>
+                        </Reveal>
+
+                        <SplitText
+                            as="h2"
+                            className="display mt-7 text-[clamp(2.1rem,5vw,3.75rem)]"
+                            stagger={40}
+                        >
+                            {['Follow-ups go', 'where you work.']}
+                        </SplitText>
+                    </div>
+
+                    <Reveal direction="up" delay={100} className="lg:pt-16">
+                        <p className="max-w-[42ch] text-[15px] leading-[1.65] text-ink-soft">
+                            Connect a tool once. From then on any action item can be sent to
+                            it without leaving the meeting page — with the assignee, the due
+                            date and a link back to the moment it was agreed.
+                        </p>
+                    </Reveal>
+                </div>
+            </div>
+
+            {/* Two counter-scrolling logo rails. */}
+            <div className="mt-16 border-y border-line">
+                <Marquee duration={44} bleed>
+                    <LogoRow />
+                </Marquee>
+            </div>
+            {/* <div className="border-b border-line">
+                <Marquee duration={52} direction="right" bleed>
+                    <LogoRow />
+                </Marquee>
+            </div> */}
+        </section>
+    )
+}

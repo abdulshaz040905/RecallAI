@@ -1,3 +1,5 @@
+'use client'
+
 import { useAuth } from "@clerk/nextjs"
 import { useEffect, useState } from "react"
 
@@ -40,6 +42,14 @@ export function useMeetings() {
     const [botToggles, setBotToggles] = useState<{ [key: string]: boolean }>({})
     const [initialLoading, setInitialLoading] = useState(true)
 
+
+    useEffect(() => {
+        if (userId) {
+            fetchUpcomingEvents()
+            fetchPastMeetings()
+        }
+    }, [userId])
+
     const fetchUpcomingEvents = async () => {
         setLoading(true)
         setError('')
@@ -77,7 +87,7 @@ export function useMeetings() {
 
             setBotToggles(toggles)
 
-        } catch (error) {
+        } catch {
             setError("failed to fetch calnedar events. please try agan")
             setConnected(false)
         }
@@ -108,13 +118,6 @@ export function useMeetings() {
         }
         setPastLoading(false)
     }
-
-     useEffect(() => {
-        if (userId) {
-            fetchUpcomingEvents()
-            fetchPastMeetings()
-        }
-    }, [userId])
 
     const toggleBot = async (eventId: string) => {
         try {
@@ -201,7 +204,7 @@ export function useMeetings() {
         toggleBot,
         directOAuth,
         getAttendeeList,
-        getInitials
+        getInitials,
     }
 
 }

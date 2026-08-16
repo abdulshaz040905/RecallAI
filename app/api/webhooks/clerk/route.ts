@@ -1,10 +1,8 @@
 import { prisma } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
-import { log } from "node:console";
 import { Webhook } from 'svix'
 
 export async function POST(request: NextRequest) {
-    console.log("request received")
     try {
         const payload = await request.text()
         const headers = {
@@ -18,7 +16,7 @@ export async function POST(request: NextRequest) {
             const wh = new Webhook(webhookSecret)
             try {
                 wh.verify(payload, headers)
-            } catch (err) {
+            } catch {
                 return NextResponse.json({ error: 'Invalid Signature' }, { status: 400 })
             }
         }

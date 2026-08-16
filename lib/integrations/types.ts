@@ -1,8 +1,32 @@
+export const INTEGRATION_PLATFORMS = [
+    'slack',
+    'trello',
+    'jira',
+    'asana',
+    'notion',
+    'linear',
+    'salesforce',
+    'hubspot'
+] as const
+
+export type IntegrationPlatform = (typeof INTEGRATION_PLATFORMS)[number]
+
+/** Platforms whose OAuth tokens expire and need refreshing. */
+export const REFRESHABLE_PLATFORMS: IntegrationPlatform[] = [
+    'jira',
+    'asana',
+    'salesforce',
+    'hubspot'
+]
+
 export interface IntegrationConfig {
-    platform: 'trello' | 'jira' | 'asana'
+    platform: IntegrationPlatform
     connected: boolean
     boardName?: string
     projectName?: string
+    databaseName?: string
+    teamName?: string
+    channelName?: string
 }
 
 export interface ActionItemData {
@@ -10,4 +34,15 @@ export interface ActionItemData {
     description?: string
     dueDate?: string
     assignee?: string
+}
+
+/** Normalised "where do action items go" descriptor returned by /setup GETs. */
+export interface SetupTarget {
+    id: string
+    name: string
+    key?: string
+}
+
+export function isIntegrationPlatform(value: string): value is IntegrationPlatform {
+    return (INTEGRATION_PLATFORMS as readonly string[]).includes(value)
 }

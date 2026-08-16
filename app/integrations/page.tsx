@@ -1,12 +1,27 @@
 'use client'
 
-import React from 'react'
+import { useMemo } from 'react'
 import { useIntegrations } from './hooks/useIntegrations'
 import SetupForm from './components/SetupForm'
 import IntegrationCard from './components/IntegrationCard'
+import { PageBody, PageHeader, Spinner } from '../components/page-shell'
 
-function Integrations() {
+const CATEGORY_ORDER = [
+    'Calendar',
+    'Docs & notes',
+    'Project management',
+    'CRM',
+    'Chat'
+] as const
 
+const HOW_IT_WORKS = [
+    'Connect the tools you want above — each one uses OAuth, so we never see your password.',
+    'Pick a destination: a Notion database, Linear team, Jira project, Trello board, Salesforce campaign, HubSpot deal or Slack channel.',
+    'Open any meeting, hover an action item and click “Add to”.',
+    'Choose one or more tools — the task is created instantly with a link back to the meeting.'
+]
+
+export default function IntegrationsPage() {
     const {
         integrations,
         loading,
@@ -15,91 +30,126 @@ function Integrations() {
         setupData,
         setSetupData,
         setupLoading,
-        setSetupLoading,
-        fetchIntegrations,
         fetchSetupData,
         handleConnect,
         handleDisconnect,
         handleSetupSubmit
     } = useIntegrations()
 
+    const grouped = useMemo(() => {
+        return CATEGORY_ORDER.map((category) => ({
+            category,
+            items: integrations.filter((integration) => integration.category === category)
+        })).filter((group) => group.items.length > 0)
+    }, [integrations])
+
+    const connectedCount = integrations.filter((i) => i.connected).length
+
+    const closeSetup = () => {
+        setSetupMode(null)
+        setSetupData(null)
+        window.history.replaceState({}, '', '/integrations')
+    }
+
     if (loading) {
         return (
-            <div className='min-h-screen bg-background flex items-center justify-center p-6'>
-                <div className='flex flex-col items-center justify-center'>
-                    <div className='animate-spin rounded-full h-6 w-6 border-b-2 border-foreground mb-4'></div>
-                    <div className='text-foreground'>Loading Integrations...</div>
-                </div>
+            <div className="flex min-h-screen items-center justify-center">
+                <Spinner />
             </div>
         )
     }
+
     return (
-        <div className='min-h-screen bg-background p-6'>
-            <div className='max-w-4xl mx-auto'>
-                <div className='mb-8'>
-                    <h1 className='text-2xl font-bold text-foreground mb-2'>Integrations</h1>
+        <>
+            <PageHeader
+                eyebrow="Connections"
+                title="Integrations"
+                description="Connect the tools your team already uses, then push action items straight into them."
+                actions={
+                    <span className="font-mono text-[11px] tabular-nums text-ink-faint">
+                        {connectedCount} / {integrations.length} connected
+                    </span>
+                }
+            />
 
-                    <p className='text-muted-foreground'>
-                        Connect your favourite tools to automatically add action items from meetings
-
-                    </p>
-                </div>
-
+            <PageBody>
                 {setupMode && (
-                    <div className='fixed inset-0 bg-black/50 flex items-center justify-center z-50'>
-                        <div className='bg-card rounded-lg p-6 border border-border max-w-md w-full mx-4'>
-                            <h2 className='text-lg font-semibold text-foreground mb-4'>
-                                Setup {setupMode.charAt(0).toUpperCase() + setupMode.slice(1)}
+                    <div
+                        className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4 backdrop-blur-sm"
+                        onClick={closeSetup}
+                    >
+                        <div
+                            className="w-full max-w-md rounded-[var(--radius)] border border-line bg-card p-6"
+                            onClick={(event) => event.stopPropagation()}
+                        >
+                            <p className="eyebrow mb-2.5">Setup</p>
+                            <h2 className="font-display text-[22px] font-medium tracking-[-0.03em]">
+                                {setupMode.charAt(0).toUpperCase() + setupMode.slice(1)}
                             </h2>
+                            <p className="mb-6 mt-1.5 text-[13px] text-ink-soft">
+                                Choose where new action items should land.
+                            </p>
 
                             <SetupForm
                                 platform={setupMode}
                                 data={setupData}
                                 onSubmit={handleSetupSubmit}
-                                onCancel={() => {
-                                    setSetupMode(null)
-                                    setSetupData(null)
-                                    window.history.replaceState({}, '', '/integrations')
-                                }}
+                                onCancel={closeSetup}
                                 loading={setupLoading}
                             />
-
                         </div>
-
                     </div>
                 )}
 
-                <div className='grid gap-6 md:grid-cols-2 lg:grid-cols-3'>
-                    {integrations.map((integration) => (
-                        <IntegrationCard
-                            key={integration.platform}
-                            integration={integration}
-                            onConnect={handleConnect}
-                            onDisconnect={handleDisconnect}
-                            onSetup={(platform) => {
-                                setSetupMode(platform)
-                                fetchSetupData(platform)
-                            }}
-                        />
+                <div className="space-y-12">
+                    {grouped.map((group) => (
+                        <section key={group.category}>
+                            <div className="mb-5 flex items-center gap-3 border-b border-line pb-3">
+                                <h2 className="eyebrow">{group.category}</h2>
+                                <span className="font-mono text-[10px] tabular-nums text-ink-faint">
+                                    ({group.items.length})
+                                </span>
+                            </div>
+
+                            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                                {group.items.map((integration) => (
+                                    <IntegrationCard
+                                        key={integration.platform}
+                                        integration={integration}
+                                        onConnect={handleConnect}
+                                        onDisconnect={handleDisconnect}
+                                        onSetup={(platform) => {
+                                            setSetupMode(platform)
+                                            fetchSetupData(platform)
+                                        }}
+                                    />
+                                ))}
+                            </div>
+                        </section>
                     ))}
                 </div>
 
-                <div className='mt-8 bg-card rounded-lg p-6 border border-border'>
-                    <h3 className='font-semibold text-foreground mb-2'>How it wokrs </h3>
-
-                    <ol className='text-sm text-muted-foreground space-y-2'>
-                        <li>1. Connect your preffered tools above</li>
-                        <li>2. Choose where to send action items during setup</li>
-                        <li>3. In meetings, hover over action items and click "Add to"</li>
-                        <li>4. Select which tool(s) to add the task to from the dropdown</li>
-
+                <section className="mt-14 border-t border-line pt-10">
+                    <h2 className="eyebrow mb-6">How this works</h2>
+                    <ol className="grid gap-px sm:grid-cols-2 lg:grid-cols-4">
+                        {HOW_IT_WORKS.map((step, index) => (
+                            <li key={step} className="relative pt-5 lg:pr-6">
+                                {index > 0 && (
+                                    <span className="absolute left-0 top-0 hidden h-full w-px bg-line lg:block" />
+                                )}
+                                <span className={index > 0 ? 'block lg:pl-6' : 'block'}>
+                                    <span className="font-mono text-[11px] tabular-nums text-ink-faint">
+                                        {String(index + 1).padStart(2, '0')}
+                                    </span>
+                                    <p className="mt-3 text-[13px] leading-[1.65] text-ink-soft">
+                                        {step}
+                                    </p>
+                                </span>
+                            </li>
+                        ))}
                     </ol>
-
-                </div>
-
-            </div>
-        </div>
+                </section>
+            </PageBody>
+        </>
     )
 }
-
-export default Integrations

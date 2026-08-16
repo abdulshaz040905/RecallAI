@@ -1,70 +1,78 @@
-import { prisma } from "@/lib/db";
-import { currentUser } from "@clerk/nextjs/server";
-import { NextResponse } from "next/server";
+import { prisma } from '@/lib/db'
+import { auth } from '@clerk/nextjs/server'
+import { NextResponse } from 'next/server'
+
+interface PlatformMeta {
+    platform: string
+    name: string
+    logo: string
+    /** Which stored column holds the human readable destination. */
+    destinationField: 'boardName' | 'projectName' | 'channelName' | null
+}
+
+const PLATFORMS: PlatformMeta[] = [
+    { platform: 'trello', name: 'Trello', logo: '/trello.png', destinationField: 'boardName' },
+    { platform: 'jira', name: 'Jira', logo: '/jira.png', destinationField: 'projectName' },
+    { platform: 'asana', name: 'Asana', logo: '/asana.png', destinationField: 'projectName' },
+    { platform: 'notion', name: 'Notion', logo: '/notion.svg', destinationField: 'projectName' },
+    { platform: 'linear', name: 'Linear', logo: '/linear.svg', destinationField: 'projectName' },
+    {
+        platform: 'salesforce',
+        name: 'Salesforce',
+        logo: '/salesforce.svg',
+        destinationField: 'projectName'
+    },
+    {
+        platform: 'hubspot',
+        name: 'HubSpot',
+        logo: '/hubspot.svg',
+        destinationField: 'projectName'
+    }
+]
 
 export async function GET() {
     try {
-        const user = await currentUser()
+        const { userId } = await auth()
 
-        console.log(user?.id);
-        
-
-        if (!user) {
+        if (!userId) {
             return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
         }
 
-        const integrations = await prisma.userIntegration.findMany({
-            where: {
-                userId: user.id
-            }
-        })
+        const [integrations, dbUser] = await Promise.all([
+            prisma.userIntegration.findMany({ where: { userId } }),
+            prisma.user.findUnique({ where: { clerkId: userId } })
+        ])
 
-        console.log(integrations);
-        
+        const result: any[] = PLATFORMS.map((meta) => {
+            const integration = integrations.find((i) => i.platform === meta.platform)
 
-        const allPlatforms = [
-            { platform: 'trello', name: 'trello', logo: '🔷', connected: false },
-            { platform: 'jira', name: 'Jira', logo: '🔵', connected: false },
-            { platform: 'asana', name: 'Asana', logo: '🟠', connected: false }
-        ]
-
-        const result: any[] = allPlatforms.map(platform => {
-            const integration = integrations.find(i => i.platform === platform.platform)
             return {
-                ...platform,
+                ...meta,
                 connected: !!integration,
-                boardName: integration?.boardName,
-                projectName: integration?.projectName
+                configured: !!(
+                    integration?.boardId ||
+                    integration?.projectId ||
+                    integration?.databaseId ||
+                    integration?.teamId
+                ),
+                boardName: integration?.boardName ?? undefined,
+                projectName: integration?.projectName ?? undefined,
+                accountName: integration?.accountName ?? undefined
             }
         })
 
-        const dbUser = await prisma.user.findFirst({
-            where: {
-                clerkId: user.id
-            }
+        result.push({
+            platform: 'slack',
+            name: 'Slack',
+            logo: '/slack.png',
+            connected: !!dbUser?.slackConnected,
+            configured: !!dbUser?.preferredChannelId,
+            channelName: dbUser?.preferredChannelName || undefined
         })
-
-        if (dbUser?.slackConnected) {
-            result.push({
-                platform: 'slack',
-                name: 'Slack',
-                logo: '💬',
-                connected: true,
-                channelName: dbUser.preferredChannelName || 'Not Set'
-            })
-        } else {
-            result.push({
-                platform: 'slack',
-                name: 'Slack',
-                logo: '💬',
-                connected: false,
-            })
-        }
 
         return NextResponse.json(result)
     } catch (error) {
-        console.error('error fetching integration statsu:', error)
-        return NextResponse.json({ error: 'Internal error' }, { status: 500 }
-        )
+        console.error('[integrations] status fetch failed:', error)
+        return NextResponse.json({ error: 'Internal error' }, { status: 500 })
     }
 }

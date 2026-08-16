@@ -1,9 +1,8 @@
-import React from 'react'
 import { CalendarEvent } from '../hooks/useMeetings'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
-import { Clock } from 'lucide-react'
 import { format } from 'date-fns'
+import { SectionHeading } from '../../components/page-shell'
 
 interface UpcomingMeetingsProps {
     upcomingEvents: CalendarEvent[]
@@ -17,7 +16,7 @@ interface UpcomingMeetingsProps {
     onConnectCalendar: () => void
 }
 
-function UpcomingMeetings({
+export default function UpcomingMeetings({
     upcomingEvents,
     connected,
     error,
@@ -30,99 +29,115 @@ function UpcomingMeetings({
 }: UpcomingMeetingsProps) {
     return (
         <div>
-            <div className='flex justify-between items-center mb-6'>
-                <h2 className='text-xl font-bold text-foreground'>Upcoming</h2>
-                <span className='text-sm text-muted-foreground'>({upcomingEvents.length})</span>
-            </div>
+            <SectionHeading
+                aside={
+                    connected && !initialLoading ? (
+                        <button
+                            type="button"
+                            onClick={onRefresh}
+                            disabled={loading}
+                            className="link-underline cursor-pointer font-mono text-[10px] uppercase tracking-[0.1em] text-ink-faint transition-colors hover:text-ink disabled:opacity-40"
+                        >
+                            {loading ? 'Refreshing…' : 'Refresh'}
+                        </button>
+                    ) : (
+                        <span className="font-mono text-[10px] tabular-nums text-ink-faint">
+                            {String(upcomingEvents.length).padStart(2, '0')}
+                        </span>
+                    )
+                }
+            >
+                Upcoming
+            </SectionHeading>
 
             {error && (
-                <div className='bg-destructive/15 border border-destructive/20 text-destructive px-4 py-3 rounded-2xl mb-6 text-sm'>
+                <div className="mb-4 rounded-[10px] border border-destructive/25 bg-destructive/5 px-4 py-3 text-[13px] text-destructive">
                     {error}
                 </div>
             )}
 
             {initialLoading ? (
-                <div className='bg-card rounded-lg p-6 border border-border'>
-                    <div className='animate-pulse'>
-                        <div className='w-12 h-12 mx-auto bg-muted rounded-full mb-3'></div>
-                        <div className='h-4 bg-muted rounded w-3/4 mx-auto mb-2'></div>
-                        <div className='h-3 bg-muted rounded w-1/2 mx-auto mb-4'></div>
-                        <div className='h-8 bg-muted rounded w-full'></div>
-                    </div>
+                <div className="space-y-2">
+                    {[0, 1, 2].map((i) => (
+                        <div
+                            key={i}
+                            className="h-[92px] animate-pulse rounded-[10px] border border-line bg-paper-2"
+                        />
+                    ))}
                 </div>
             ) : !connected ? (
-                <div className='bg-card rounded-lg p-6 text-center border border-border'>
-                    <div className='w-12 h-12 mx-auto bg-primary/10 rounded-full flex items-center justify-center mb-3'>
-                        📆
-                    </div>
-                    <h3 className='font-semibold mb-2 text-foreground text-sm'>Connect Calendar</h3>
-                    <p className='text-muted-foreground mb-4 text-xs'>
-                        Connect Google Calendar to see upcoming meetings
+                <div className="rounded-[var(--radius)] border border-dashed border-line-strong p-7 text-center">
+                    <p className="font-display text-[16px] font-medium tracking-[-0.02em]">
+                        Connect your calendar
                     </p>
-
+                    <p className="mt-2 text-[13px] leading-relaxed text-ink-soft">
+                        Recall needs Google Calendar to know which calls to join.
+                    </p>
                     <Button
                         onClick={onConnectCalendar}
                         disabled={loading}
-                        className='w-full px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors text-sm cursor-pointer'
+                        size="sm"
+                        className="mt-5 w-full"
                     >
-                        {loading ? 'Connecting' : 'Connect Google Calendar'}
+                        {loading ? 'Connecting…' : 'Connect Google Calendar'}
                     </Button>
                 </div>
             ) : upcomingEvents.length === 0 ? (
-                <div className='bg-card rounded-lg p-6 text-center border border-border'>
-                    <h3 className='font-medium mb-2 text-foreground text-sm'>
-                        No upcoming meetings
-                    </h3>
-                    <p className='text-muted-foreground text-xs '>
-                        Your caledar is clear!
+                <div className="rounded-[var(--radius)] border border-dashed border-line-strong p-7 text-center">
+                    <p className="font-display text-[16px] font-medium tracking-[-0.02em]">
+                        Nothing scheduled
                     </p>
+                    <p className="mt-2 text-[13px] text-ink-soft">Your calendar is clear.</p>
                 </div>
             ) : (
-                <div className='space-y-3'>
-                    <Button
-                        className='w-full px-3 py-2 bg-muted rounded-lg hover:bg-muted/80 disabled:opacity-50 transition-colors text-foreground text-sm mb-4 cursor-pointer'
-                        onClick={onRefresh}
-                        disabled={loading}
-                    >
-                        {loading ? 'Loading...' : 'Refresh'}
-                    </Button>
-                    {upcomingEvents.map((event) => (
-                        <div key={event.id} className='bg-card rounded-lg p-3 border border-border hover:shadow-md transition-shadow relative'>
-                            <div className='absolute top-3 right-3'>
-                                <Switch
-                                    checked={!!botToggles[event.id]}
-                                    onCheckedChange={() => onToggleBot(event.id)}
-                                    aria-label='Toggle bot for this meeting'
-                                    className='cursor-pointer'
-                                />
-                            </div>
-                            <h4 className='font-medium text-sm text-foreground mb-2 pr-12'>{event.summary || 'No Title'}</h4>
-                            <div className='space-y-1 text-xs text-muted-foreground'>
-                                <div className='flex items-center gap-1'>
-                                    <Clock className='w-3 h-3' />
-                                    {format(new Date(event.start?.dateTime || event.start?.date || ''), 'MMM d, h:mm a')}
+                <ul>
+                    {upcomingEvents.map((event) => {
+                        const start = new Date(
+                            event.start?.dateTime || event.start?.date || ''
+                        )
+                        const joinLink = event.hangoutLink || event.location
+
+                        return (
+                            <li
+                                key={event.id}
+                                className="group border-b border-line py-4 first:border-t"
+                            >
+                                <div className="flex items-start justify-between gap-3">
+                                    <div className="min-w-0">
+                                        <p className="truncate text-[14px] font-medium leading-snug tracking-[-0.01em]">
+                                            {event.summary || 'Untitled meeting'}
+                                        </p>
+                                        <p className="mt-1.5 font-mono text-[10px] uppercase tracking-[0.08em] text-ink-faint">
+                                            {format(start, 'EEE d MMM · HH:mm')}
+                                            {event.attendees
+                                                ? ` · ${event.attendees.length} attending`
+                                                : ''}
+                                        </p>
+                                    </div>
+
+                                    <Switch
+                                        checked={!!botToggles[event.id]}
+                                        onCheckedChange={() => onToggleBot(event.id)}
+                                        aria-label="Toggle bot for this meeting"
+                                        className="mt-0.5 shrink-0 cursor-pointer"
+                                    />
                                 </div>
-                                {event.attendees && (
-                                    <div>👥 {event.attendees.length} attendees</div>
+
+                                {joinLink && (
+                                    <a
+                                        href={joinLink}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="link-underline mt-2.5 inline-block font-mono text-[10px] uppercase tracking-[0.1em] text-ink-soft transition-colors hover:text-ink"
+                                    >
+                                        Join meeting →
+                                    </a>
                                 )}
-                            </div>
-                            {(event.hangoutLink || event.location) && (
-                                <a
-                                    href={event.hangoutLink || event.location || '#'}
-                                    target='_blank'
-                                    rel='noopener noreferrer'
-                                >
-                                    <Button className='mt-2 w-full px-2 py-1 bg-primary text-primary-foreground text-xs rounded hover:bg-primary/90 transition-colors h-6 cursor-pointer'>
-                                        Join Meeting
-                                    </Button>
-                                </a>
-                            )}
-                        </div>
-                    ))}
-                </div>
+                            </li>
+                        )
+                    })}
+                </ul>
             )}
         </div>
     )
 }
-
-export default UpcomingMeetings

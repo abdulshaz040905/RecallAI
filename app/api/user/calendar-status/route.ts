@@ -22,7 +22,7 @@ export async function GET() {
         return NextResponse.json({
             connected: user?.calendarConnected && !!user.googleAccessToken
         })
-    } catch (error) {
+    } catch {
         return NextResponse.json({ connected: false })
     }
 }

@@ -12,7 +12,7 @@ export async function GET() {
 
     const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/integrations/jira/callback`
 
-    const scope = 'read%3Ajira-work%20manage%3Ajira-project%20manage%3Ajira-configuration%20read%3Ajira-user%20write%3Ajira-work'
+    const scope = 'read:jira-work write:jira-work manage:jira-project manage:jira-configuration read:jira-user offline_access'
 
     const state = userId
 
