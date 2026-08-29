@@ -66,7 +66,7 @@ export function SmoothScroll() {
                 if (!target) return
 
                 event.preventDefault()
-                lenis.scrollTo(target as HTMLElement, { offset: 150, duration: 1.2 })
+                lenis.scrollTo(target as HTMLElement, { offset: 100, duration: 1.2 })
             }
 
             document.addEventListener('click', onClick)
