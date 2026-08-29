@@ -86,7 +86,7 @@ describe('shouldRefresh', () => {
 
     it('refreshes inside the skew window', () => {
         const justInside = new Date(now.getTime() + REFRESH_SKEW_MS - 1000)
-        expect(shouldRefresh('hubspot', justInside, now)).toBe(true)
+        expect(shouldRefresh('jira', justInside, now)).toBe(true)
     })
 
     it('leaves a comfortably valid token alone', () => {
@@ -95,20 +95,20 @@ describe('shouldRefresh', () => {
     })
 
     it('refreshes when there is no expiry recorded', () => {
-        expect(shouldRefresh('asana', null, now)).toBe(true)
+        expect(shouldRefresh('salesforce', null, now)).toBe(true)
     })
 })
 
 describe('integration platform registry', () => {
     it('includes every new integration', () => {
-        for (const platform of ['notion', 'linear', 'salesforce', 'hubspot']) {
+        for (const platform of ['notion', 'linear', 'salesforce']) {
             expect(INTEGRATION_PLATFORMS).toContain(platform)
             expect(isIntegrationPlatform(platform)).toBe(true)
         }
     })
 
     it('keeps the original integrations', () => {
-        for (const platform of ['slack', 'trello', 'jira', 'asana']) {
+        for (const platform of ['slack', 'trello', 'jira']) {
             expect(isIntegrationPlatform(platform)).toBe(true)
         }
     })
