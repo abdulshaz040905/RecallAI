@@ -7,4 +7,4 @@ your data for any purpose other than app functionality.
 Your data is stored securely on our servers and you can 
 request deletion anytime.
 
-Contact: abdulshaz9902@gmail.com
+Contact: abdulshaz040905@gmail.com
