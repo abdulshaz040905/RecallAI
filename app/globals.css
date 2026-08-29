@@ -455,9 +455,9 @@
     isolation: isolate;
   }
 
-  .btn-slide__inner {
-    display: grid;
-    grid-template-rows: 1fr;
+    .btn-slide__inner {
+    display: block;
+    height: 1.25em;
     overflow: hidden;
   }
 
