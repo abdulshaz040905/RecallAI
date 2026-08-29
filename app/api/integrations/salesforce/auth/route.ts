@@ -2,6 +2,12 @@ import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { createOAuthState } from '@/lib/integrations/oauth-state'
 import { salesforceLoginUrl } from '@/lib/integrations/salesforce/refreshToken'
+import {
+    createCodeChallenge,
+    createCodeVerifier,
+    PKCE_COOKIE_MAX_AGE,
+    pkceCookieName
+} from '@/lib/integrations/pkce'
 
 export async function GET() {
     const { userId } = await auth()
@@ -17,6 +23,10 @@ export async function GET() {
         )
     }
 
+    // Salesforce enforces PKCE; the verifier is kept in an httpOnly cookie so it
+    // never travels to the provider, and read back in the callback.
+    const verifier = createCodeVerifier()
+
     const url = new URL(`${salesforceLoginUrl()}/services/oauth2/authorize`)
     url.searchParams.set('client_id', process.env.SALESFORCE_CLIENT_ID)
     url.searchParams.set('response_type', 'code')
@@ -27,6 +37,18 @@ export async function GET() {
     // refresh_token requires the "Perform requests at any time" scope.
     url.searchParams.set('scope', 'api refresh_token offline_access id')
     url.searchParams.set('state', createOAuthState(userId, 'salesforce'))
+    url.searchParams.set('code_challenge', createCodeChallenge(verifier))
+    url.searchParams.set('code_challenge_method', 'S256')
 
-    return NextResponse.redirect(url)
+    const response = NextResponse.redirect(url)
+
+    response.cookies.set(pkceCookieName('salesforce'), verifier, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: PKCE_COOKIE_MAX_AGE
+    })
+
+    return response
 }

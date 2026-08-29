@@ -1,8 +1,6 @@
 import { UserIntegration } from '@prisma/client'
-import { refreshAsanaToken } from './asana/refreshToken'
 import { refreshJiraToken } from './jira/refreshToken'
 import { refreshSalesforceToken } from './salesforce/refreshToken'
-import { refreshHubSpotToken } from './hubspot/refreshToken'
 import { REFRESH_SKEW_MS, shouldRefresh } from './token-expiry'
 
 export { REFRESH_SKEW_MS, shouldRefresh }
@@ -20,12 +18,8 @@ export async function refreshTokenIfNeeded(integration: UserIntegration) {
     switch (integration.platform) {
         case 'jira':
             return refreshJiraToken(integration)
-        case 'asana':
-            return refreshAsanaToken(integration)
         case 'salesforce':
             return refreshSalesforceToken(integration)
-        case 'hubspot':
-            return refreshHubSpotToken(integration)
         default:
             return integration
     }

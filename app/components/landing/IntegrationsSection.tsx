@@ -8,9 +8,7 @@ const integrations = [
     { name: 'Notion', logo: '/notion.svg' },
     { name: 'Linear', logo: '/linear.svg' },
     { name: 'Salesforce', logo: '/salesforce.svg' },
-    { name: 'HubSpot', logo: '/hubspot.svg' },
     { name: 'Jira', logo: '/jira.png' },
-    { name: 'Asana', logo: '/asana.png' },
     { name: 'Trello', logo: '/trello.png' },
     { name: 'Slack', logo: '/slack.png' },
     { name: 'Google Calendar', logo: '/gcal.png' }

@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: 'no authorization code' }, { status: 400 })
         }
 
-        const redirectUri = `${baseUrl}/api/slack/oauth`
+        const redirectUri = process.env.SLACK_REDIRECT_URL as string
 
         const tokenResponse = await fetch('https://slack.com/api/oauth.v2.access', {
             method: 'POST',

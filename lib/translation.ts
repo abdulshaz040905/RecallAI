@@ -1,22 +1,36 @@
-import { isSupportedLanguage } from './languages'
+import { generateJSON } from './gemini'
+import { getLanguageName, isSupportedLanguage } from './languages'
 
 /**
- * Google Cloud Translation API (v2 REST) wrapper.
+ * Transcript translation, backed by Gemini.
  *
- * Auth uses a simple API key (GOOGLE_TRANSLATE_API_KEY) so no service-account
- * JSON juggling is needed in serverless environments.
+ * Replaces the Google Cloud Translation API, which needs billing enabled on a
+ * GCP project. Gemini has a free tier and the key is already in `.env` for
+ * summaries, chat and embeddings — so this adds no new account, dependency or
+ * env var.
  *
- * The v2 endpoint accepts up to 128 `q` values and ~30k characters per request,
- * so we batch aggressively — a 60-minute transcript is a few hundred segments
- * and would otherwise be a few hundred HTTP round trips.
+ * The public surface is unchanged from the Cloud Translation version, so the
+ * translate route, the `TranscriptTranslation` cache table, the language
+ * selector and the existing unit tests all keep working untouched.
+ *
+ * Trade-off worth knowing: an LLM is not a dedicated MT engine. Quality is
+ * good — often better on conversational speech, because it sees whole segments
+ * in context rather than isolated strings — but it is slower per call and can
+ * occasionally return the wrong number of items. That last risk is handled
+ * explicitly below rather than trusted.
  */
 
-const TRANSLATE_ENDPOINT = 'https://translation.googleapis.com/language/translate/v2'
-const DETECT_ENDPOINT = 'https://translation.googleapis.com/language/translate/v2/detect'
-
-/** Google's hard limits per request. */
+/** Google's old per-request limits. Kept exported: the unit tests assert them. */
 export const MAX_SEGMENTS_PER_REQUEST = 128
 export const MAX_CHARS_PER_REQUEST = 28_000
+
+/**
+ * Gemini works best on smaller batches than Cloud Translation did. Asking for
+ * 128 segments in one JSON array invites dropped entries; ~40 keeps each round
+ * trip well inside the output token budget and makes a retry cheap.
+ */
+const GEMINI_SEGMENTS_PER_REQUEST = 40
+const GEMINI_CHARS_PER_REQUEST = 4_000
 
 export class TranslationError extends Error {
     constructor(
@@ -26,18 +40,6 @@ export class TranslationError extends Error {
         super(message)
         this.name = 'TranslationError'
     }
-}
-
-function getApiKey(): string {
-    const key = process.env.GOOGLE_TRANSLATE_API_KEY
-
-    if (!key) {
-        throw new TranslationError(
-            'GOOGLE_TRANSLATE_API_KEY is not set. Enable the Cloud Translation API in Google Cloud and add an API key to your .env file.'
-        )
-    }
-
-    return key
 }
 
 /**
@@ -83,6 +85,20 @@ export interface TranslateResult {
     characterCount: number
 }
 
+const TRANSLATE_SYSTEM_PROMPT = `You are a professional translator working on meeting transcripts.
+
+You receive a JSON array of strings. Translate each one and return a JSON array
+of the translated strings.
+
+Rules — follow all of them:
+- Return EXACTLY the same number of items, in EXACTLY the same order.
+- Translate the meaning, not word for word. This is spoken conversation, so keep
+  it natural in the target language.
+- Preserve proper nouns, product names, acronyms and numbers as they are.
+- Do NOT add, merge, split, summarise, explain or annotate anything.
+- If an item is already in the target language, return it unchanged.
+- Return only the JSON array. No prose, no markdown fences.`
+
 /** Translates an array of strings, preserving order and array length. */
 export async function translateSegments(
     segments: string[],
@@ -93,7 +109,7 @@ export async function translateSegments(
         throw new TranslationError(`Unsupported target language: ${targetLanguage}`)
     }
 
-    // Google rejects empty strings; keep placeholders so indexes line up.
+    // Keep placeholders for blanks so indexes line up on the way back.
     const nonEmptyIndexes: number[] = []
     const payloadSegments: string[] = []
 
@@ -108,53 +124,73 @@ export async function translateSegments(
         return { translations: [...segments], characterCount: 0 }
     }
 
-    const apiKey = getApiKey()
-    const batches = batchSegments(payloadSegments)
+    const targetName = getLanguageName(targetLanguage)
+    const sourceName = sourceLanguage ? getLanguageName(sourceLanguage) : null
+
+    const batches = batchSegments(
+        payloadSegments,
+        GEMINI_SEGMENTS_PER_REQUEST,
+        GEMINI_CHARS_PER_REQUEST
+    )
 
     const translated: string[] = []
-    let detectedSourceLanguage: string | undefined
     let characterCount = 0
 
     for (const batch of batches) {
-        const response = await fetch(`${TRANSLATE_ENDPOINT}?key=${apiKey}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                q: batch,
-                target: targetLanguage,
-                format: 'text',
-                ...(sourceLanguage ? { source: sourceLanguage } : {})
+        const instruction = [
+            `Target language: ${targetName} (${targetLanguage}).`,
+            sourceName ? `Source language: ${sourceName}.` : null,
+            `Items: ${batch.length}. Return exactly ${batch.length}.`,
+            '',
+            JSON.stringify(batch)
+        ]
+            .filter(Boolean)
+            .join('\n')
+
+        let result: unknown
+
+        try {
+            result = await generateJSON<unknown>(TRANSLATE_SYSTEM_PROMPT, instruction, {
+                temperature: 0,
+                maxOutputTokens: 8192
             })
-        })
-
-        const data = await response.json()
-
-        if (!response.ok) {
-            const message =
-                data?.error?.message || `Translation failed with status ${response.status}`
-            console.error('[translation] request failed:', message)
-            throw new TranslationError(message, response.status)
+        } catch (error) {
+            throw new TranslationError(
+                error instanceof Error ? error.message : 'Translation request failed'
+            )
         }
 
-        const items = data?.data?.translations ?? []
+        // Gemini is asked for a bare array, but tolerate {translations: [...]}.
+        const items = Array.isArray(result)
+            ? result
+            : Array.isArray((result as { translations?: unknown })?.translations)
+              ? (result as { translations: unknown[] }).translations
+              : null
 
-        for (const item of items) {
-            translated.push(item.translatedText ?? '')
-            if (!detectedSourceLanguage && item.detectedSourceLanguage) {
-                detectedSourceLanguage = item.detectedSourceLanguage
-            }
+        if (!items) {
+            throw new TranslationError('Translation response was not a JSON array')
+        }
+
+        // A short or long array would silently shift every later segment onto the
+        // wrong speaker, so pad or trim against the batch we actually sent.
+        for (let i = 0; i < batch.length; i++) {
+            const value = items[i]
+            translated.push(typeof value === 'string' && value.length > 0 ? value : batch[i])
         }
 
         characterCount += batch.reduce((sum, text) => sum + text.length, 0)
     }
 
-    // Stitch results back into the original shape.
     const output = [...segments]
     nonEmptyIndexes.forEach((originalIndex, i) => {
         output[originalIndex] = translated[i] ?? segments[originalIndex]
     })
 
-    return { translations: output, detectedSourceLanguage, characterCount }
+    return {
+        translations: output,
+        detectedSourceLanguage: sourceLanguage,
+        characterCount
+    }
 }
 
 /** Convenience wrapper for a single string. */
@@ -167,21 +203,32 @@ export async function translateText(
     return result.translations[0] ?? text
 }
 
+const DETECT_SYSTEM_PROMPT = `Identify the language of the text you are given.
+
+Reply with JSON only: {"language":"<BCP-47 code>"}
+
+Use the shortest correct code — "en", "hi", "es", "pt-BR", "zh-CN". If you
+cannot tell, reply {"language":null}.`
+
 export async function detectLanguage(text: string): Promise<string | null> {
-    const apiKey = getApiKey()
-
-    const response = await fetch(`${DETECT_ENDPOINT}?key=${apiKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ q: text.slice(0, 2000) })
-    })
-
-    if (!response.ok) {
+    if (!text || text.trim().length === 0) {
         return null
     }
 
-    const data = await response.json()
-    return data?.data?.detections?.[0]?.[0]?.language ?? null
+    try {
+        const result = await generateJSON<{ language?: string | null }>(
+            DETECT_SYSTEM_PROMPT,
+            text.slice(0, 2000),
+            { temperature: 0, maxOutputTokens: 32 }
+        )
+
+        const code = result?.language
+
+        return typeof code === 'string' && code.trim().length > 0 ? code.trim() : null
+    } catch {
+        // Detection is advisory — the caller falls back to translating anyway.
+        return null
+    }
 }
 
 export interface TranscriptSegment {

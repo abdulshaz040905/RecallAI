@@ -76,7 +76,7 @@ function ProductPlate() {
                         {[
                             ['Ship onboarding flow', 'Linear', true],
                             ['Pause pricing test', 'Notion', true],
-                            ['Book design review', 'Asana', false],
+                            ['Book design review', 'Jira', false],
                             ['Send recap to #product', 'Slack', false]
                         ].map(([label, target, done]) => (
                             <li

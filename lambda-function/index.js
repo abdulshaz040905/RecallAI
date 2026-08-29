@@ -322,7 +322,7 @@ async function scheduleBotsForUpcomingMeetings() {
             }
             const requestBody = {
                 meeting_url: meeting.meetingUrl,
-                bot_name: meeting.user.botName || 'AI Noteetaker',
+                bot_name: meeting.user.botName || 'AI Notetaker',
                 reserved: false,
                 recording_mode: 'speaker_view',
                 speech_to_text: { provider: "Default" },

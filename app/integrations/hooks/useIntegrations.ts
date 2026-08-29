@@ -9,11 +9,9 @@ export type IntegrationPlatformId =
     | 'slack'
     | 'trello'
     | 'jira'
-    | 'asana'
     | 'notion'
     | 'linear'
     | 'salesforce'
-    | 'hubspot'
 
 export interface Integration {
     platform: IntegrationPlatformId
@@ -78,15 +76,6 @@ const CATALOGUE: Integration[] = [
         logo: '/jira.png'
     },
     {
-        platform: 'asana',
-        name: 'Asana',
-        description: 'Sync tasks with your team projects.',
-        targetLabel: 'project',
-        category: 'Project management',
-        connected: false,
-        logo: '/asana.png'
-    },
-    {
         platform: 'trello',
         name: 'Trello',
         description: 'Add action items as cards on your boards.',
@@ -104,27 +93,16 @@ const CATALOGUE: Integration[] = [
         connected: false,
         logo: '/salesforce.svg'
     },
-    {
-        platform: 'hubspot',
-        name: 'HubSpot',
-        description: 'Create CRM tasks linked to the right deal.',
-        targetLabel: 'deal',
-        category: 'CRM',
-        connected: false,
-        logo: '/hubspot.svg'
-    }
 ]
 
 /** Platforms that need a destination picked after connecting. */
 const SETUP_PLATFORMS = [
     'trello',
     'jira',
-    'asana',
     'slack',
     'notion',
     'linear',
     'salesforce',
-    'hubspot'
 ]
 
 export function useIntegrations() {

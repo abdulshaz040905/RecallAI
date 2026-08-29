@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/db'
 import { integrationsRedirect, verifyOAuthState } from '@/lib/integrations/oauth-state'
+import { pkceCookieName } from '@/lib/integrations/pkce'
 import { salesforceLoginUrl } from '@/lib/integrations/salesforce/refreshToken'
 import { auth } from '@clerk/nextjs/server'
 import { NextRequest, NextResponse } from 'next/server'
@@ -17,13 +18,25 @@ export async function GET(request: NextRequest) {
         )
     }
 
+    // Set by the auth route before the redirect. Salesforce enforces PKCE, so a
+    // missing verifier means the flow didn't start here — reject it.
+    const codeVerifier = request.cookies.get(pkceCookieName('salesforce'))?.value
+
+    if (!codeVerifier) {
+        console.error('[salesforce] PKCE verifier cookie missing')
+        return NextResponse.redirect(
+            integrationsRedirect({ error: 'auth_failed', platform: 'salesforce' })
+        )
+    }
+
     try {
         const params = new URLSearchParams({
             grant_type: 'authorization_code',
             code,
             client_id: process.env.SALESFORCE_CLIENT_ID!,
             client_secret: process.env.SALESFORCE_CLIENT_SECRET!,
-            redirect_uri: `${process.env.NEXT_PUBLIC_APP_URL}/api/integrations/salesforce/callback`
+            redirect_uri: `${process.env.NEXT_PUBLIC_APP_URL}/api/integrations/salesforce/callback`,
+            code_verifier: codeVerifier
         })
 
         const tokenResponse = await fetch(`${salesforceLoginUrl()}/services/oauth2/token`, {

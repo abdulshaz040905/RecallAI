@@ -2,11 +2,9 @@ export const INTEGRATION_PLATFORMS = [
     'slack',
     'trello',
     'jira',
-    'asana',
     'notion',
     'linear',
-    'salesforce',
-    'hubspot'
+    'salesforce'
 ] as const
 
 export type IntegrationPlatform = (typeof INTEGRATION_PLATFORMS)[number]
@@ -14,9 +12,7 @@ export type IntegrationPlatform = (typeof INTEGRATION_PLATFORMS)[number]
 /** Platforms whose OAuth tokens expire and need refreshing. */
 export const REFRESHABLE_PLATFORMS: IntegrationPlatform[] = [
     'jira',
-    'asana',
     'salesforce',
-    'hubspot'
 ]
 
 export interface IntegrationConfig {

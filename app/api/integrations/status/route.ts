@@ -13,7 +13,6 @@ interface PlatformMeta {
 const PLATFORMS: PlatformMeta[] = [
     { platform: 'trello', name: 'Trello', logo: '/trello.png', destinationField: 'boardName' },
     { platform: 'jira', name: 'Jira', logo: '/jira.png', destinationField: 'projectName' },
-    { platform: 'asana', name: 'Asana', logo: '/asana.png', destinationField: 'projectName' },
     { platform: 'notion', name: 'Notion', logo: '/notion.svg', destinationField: 'projectName' },
     { platform: 'linear', name: 'Linear', logo: '/linear.svg', destinationField: 'projectName' },
     {

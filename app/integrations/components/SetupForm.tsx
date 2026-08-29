@@ -29,17 +29,14 @@ const TARGET_LABELS: Record<string, string> = {
     trello: 'board',
     slack: 'channel',
     jira: 'project',
-    asana: 'project',
     notion: 'database',
     linear: 'team',
-    salesforce: 'campaign',
-    hubspot: 'deal'
+    salesforce: 'campaign'
 }
 
 /**
  * Which request key the API expects. Notion/Linear/Salesforce/HubSpot all
  * normalise onto `projectId`/`projectName` server-side, so we only special-case
- * Trello (boards) and Slack (channels).
  */
 function payloadKeys(platform: string) {
     if (platform === 'trello') return { id: 'boardId', name: 'boardName' }

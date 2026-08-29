@@ -31,8 +31,8 @@ model User {
 
   currentPlan          String    @default("free")
   subscriptionStatus   String    @default("inactive")
-  stripeCustomerId     String?
-  stripeSubscriptionId String?
+  razorpayCustomerId     String?
+  razorpaySubscriptionId String?   @unique
   billingPeriodStart   DateTime?
   meetingsThisMonth    Int       @default(0)
   chatMessagesToday    Int       @default(0)

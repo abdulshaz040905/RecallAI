@@ -30,7 +30,7 @@ const features = [
     },
     {
         title: 'Action items that actually land',
-        body: 'Push tasks to Notion, Linear, Jira, Asana, Trello, Salesforce, HubSpot or Slack in a single click.',
+        body: 'Push tasks to Notion, Linear, Jira, Trello, Salesforce or Slack in a single click',
         meta: 'Routing'
     },
     {

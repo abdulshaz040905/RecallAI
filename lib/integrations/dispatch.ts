@@ -1,6 +1,4 @@
 import { UserIntegration } from '@prisma/client'
-import { AsanaAPI } from './asana/asana'
-import { HubSpotAPI } from './hubspot/hubspot'
 import { JiraAPI } from './jira/jira'
 import { LinearAPI } from './linear/linear'
 import { NotionAPI } from './notion/notion'
@@ -71,18 +69,6 @@ export async function dispatchActionItem(
             return { platform: 'jira', externalId: issue?.key }
         }
 
-        case 'asana': {
-            if (!integration.projectId) {
-                throw new IntegrationConfigError('Asana project not configured')
-            }
-
-            const task = await new AsanaAPI().createTask(
-                integration.accessToken,
-                integration.projectId,
-                item
-            )
-            return { platform: 'asana', externalId: task?.data?.gid }
-        }
 
         case 'notion': {
             if (!integration.databaseId) {
@@ -130,14 +116,6 @@ export async function dispatchActionItem(
             }
         }
 
-        case 'hubspot': {
-            const task = await new HubSpotAPI().createTask(
-                integration.accessToken,
-                item,
-                integration.projectId
-            )
-            return { platform: 'hubspot', externalId: task?.id }
-        }
 
         case 'slack': {
             const channel = integration.boardId || integration.projectId

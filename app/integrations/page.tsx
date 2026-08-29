@@ -16,7 +16,7 @@ const CATEGORY_ORDER = [
 
 const HOW_IT_WORKS = [
     'Connect the tools you want above — each one uses OAuth, so we never see your password.',
-    'Pick a destination: a Notion database, Linear team, Jira project, Trello board, Salesforce campaign, HubSpot deal or Slack channel.',
+    'Pick a destination: a Notion database, Linear team, Jira project, Trello board, Salesforce campaign or Slack channel',
     'Open any meeting, hover an action item and click “Add to”.',
     'Choose one or more tools — the task is created instantly with a link back to the meeting.'
 ]
