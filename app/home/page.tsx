@@ -53,7 +53,6 @@ export default function Home() {
     error,
     botToggles,
     initialLoading,
-    fetchUpcomingEvents,
     refreshUpcomingEvents,
     toggleBot,
     directOAuth,
