@@ -3,7 +3,6 @@ import { prisma } from '@/lib/db'
 import { sendMeetingSummaryEmail } from '@/lib/email-service-free'
 import { computeDurationMinutes, normaliseParticipants } from '@/lib/meeting-filters'
 import { processTranscript } from '@/lib/rag'
-import { incrementMeetingUsage } from '@/lib/usage'
 import { NextRequest, NextResponse } from 'next/server'
 
 export const maxDuration = 60
@@ -45,8 +44,6 @@ export async function POST(request: NextRequest) {
             console.error('[webhook] meeting not found for bot id:', webhookData.bot_id)
             return NextResponse.json({ error: 'meeting not found' }, { status: 404 })
         }
-
-        await incrementMeetingUsage(meeting.userId)
 
         if (!meeting.user.email) {
             console.error('[webhook] user email missing for meeting', meeting.id)

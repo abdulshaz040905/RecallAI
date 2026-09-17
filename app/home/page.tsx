@@ -54,6 +54,7 @@ export default function Home() {
     botToggles,
     initialLoading,
     fetchUpcomingEvents,
+    refreshUpcomingEvents,
     toggleBot,
     directOAuth,
     getAttendeeList,
@@ -159,7 +160,7 @@ export default function Home() {
                 loading={loading}
                 initialLoading={initialLoading}
                 botToggles={botToggles}
-                onRefresh={fetchUpcomingEvents}
+                onRefresh={refreshUpcomingEvents}
                 onToggleBot={toggleBot}
                 onConnectCalendar={directOAuth}
               />
