@@ -115,7 +115,7 @@ async function syncUserCalendar(user) {
 
     if (deletedEvents.length > 0) {
       for (const deletedEvent of deletedEvents) {
-        await handleDeletedEventFromDB(user, deletedEvent);
+        await handleDeletedEventFromDB(deletedEvent);
       }
     }
   } catch (error) {
@@ -402,7 +402,7 @@ async function scheduleBotsForUpcomingMeetings() {
       });
 
       await incrementMeetingUsage(meeting.userId);
-    } } catch (error) {
+    }  catch (error) {
     console.error(
         `bot failed for ${meeting.title}:`,
         error.message
