@@ -1,8 +1,6 @@
 import { processMeetingTranscript, transcriptToText } from '@/lib/ai-processor'
 import { prisma } from '@/lib/db'
-import { sendMeetingSummaryEmail } from '@/lib/email-service-free'
 import { computeDurationMinutes, normaliseParticipants } from '@/lib/meeting-filters'
-import { processTranscript } from '@/lib/rag'
 import { NextRequest, NextResponse } from 'next/server'
 
 export const maxDuration = 60
@@ -26,35 +24,52 @@ export async function POST(request: NextRequest) {
     try {
         const webhook = await request.json()
 
-        if (webhook.event !== 'complete') {
+        if (!webhook || typeof webhook !== 'object' || Array.isArray(webhook)) {
+            return NextResponse.json({ error: 'Invalid webhook payload' }, { status: 400 })
+        }
+
+        // v1 completion payloads can carry their fields in `data` or at the root.
+        const webhookData =
+            webhook.data && typeof webhook.data === 'object' && !Array.isArray(webhook.data)
+                ? webhook.data
+                : webhook
+        const event = webhook.event ?? webhookData.event
+        const botId = webhookData.bot_id ?? webhook.bot_id
+
+        console.info('[meetingbaas-webhook] received', {
+            event,
+            botId: typeof botId === 'string' ? botId : null
+        })
+
+        if (event !== 'complete') {
             return NextResponse.json({
                 success: true,
                 message: 'Webhook received, no action needed'
             })
         }
 
-        const webhookData = webhook.data
+        if (typeof botId !== 'string' || !botId.trim()) {
+            return NextResponse.json({ error: 'Completion webhook is missing bot_id' }, { status: 400 })
+        }
 
         const meeting = await prisma.meeting.findFirst({
-            where: { botId: webhookData.bot_id },
+            where: { botId },
             include: { user: true }
         })
 
         if (!meeting) {
-            console.error('[webhook] meeting not found for bot id:', webhookData.bot_id)
+            console.error('[webhook] meeting not found for bot id:', botId)
             return NextResponse.json({ error: 'meeting not found' }, { status: 404 })
-        }
-
-        if (!meeting.user.email) {
-            console.error('[webhook] user email missing for meeting', meeting.id)
-            return NextResponse.json({ error: 'user email not found' }, { status: 400 })
         }
 
         // Flatten once and reuse — this powers full text search, translation and
         // the RAG pipeline, so it must be stored, not recomputed on every read.
-        const transcriptText = transcriptToText(webhookData.transcript)
+        const transcript = webhookData.transcript ?? meeting.transcript
+        const speakers = webhookData.speakers ?? meeting.speakers
+        const transcriptText = transcriptToText(transcript)
+        const recordingUrl = webhookData.mp4 ?? webhookData.recording_url
         const participantNames = collectParticipants(
-            webhookData.speakers,
+            speakers,
             meeting.attendees
         )
 
@@ -62,11 +77,13 @@ export async function POST(request: NextRequest) {
             where: { id: meeting.id },
             data: {
                 meetingEnded: true,
-                transcriptReady: true,
-                transcript: webhookData.transcript || null,
-                transcriptText: transcriptText || null,
-                recordingUrl: webhookData.mp4 || null,
-                speakers: webhookData.speakers || null,
+                transcriptReady: Boolean(transcriptText.trim()) || meeting.transcriptReady,
+                transcript: transcript ?? undefined,
+                transcriptText: transcriptText || undefined,
+                recordingUrl: typeof recordingUrl === 'string' && recordingUrl
+                    ? recordingUrl
+                    : undefined,
+                speakers: speakers ?? undefined,
                 participantNames,
                 durationMinutes: computeDurationMinutes(
                     meeting.startTime,
@@ -75,7 +92,13 @@ export async function POST(request: NextRequest) {
             }
         })
 
-        if (!webhookData.transcript || meeting.processed) {
+        console.info('[meetingbaas-webhook] completion saved', {
+            meetingId: meeting.id,
+            botId,
+            transcriptReady: Boolean(transcriptText.trim()) || meeting.transcriptReady
+        })
+
+        if (!transcriptText.trim() || meeting.processed) {
             return NextResponse.json({
                 success: true,
                 message: 'Meeting saved',
@@ -84,7 +107,7 @@ export async function POST(request: NextRequest) {
         }
 
         try {
-            const processed = await processMeetingTranscript(webhookData.transcript)
+            const processed = await processMeetingTranscript(transcript)
 
             // Persist the AI output first so a failing email can't lose it.
             await prisma.meeting.update({
@@ -100,23 +123,40 @@ export async function POST(request: NextRequest) {
             })
 
             // Email and vector indexing are independent — run them together and
-            // let each fail on its own without taking the other down.
+            // load their integrations after saving completion and the summary.
             const [emailResult, ragResult] = await Promise.allSettled([
-                sendMeetingSummaryEmail({
-                    userEmail: meeting.user.email,
-                    userName: meeting.user.name || 'User',
-                    meetingTitle: meeting.title,
-                    summary: processed.summary,
-                    actionItems: processed.actionItems,
-                    meetingId: meeting.id,
-                    meetingDate: meeting.startTime.toLocaleDateString()
-                }),
-                processTranscript(
-                    meeting.id,
-                    meeting.userId,
-                    transcriptText,
-                    meeting.title
-                )
+                (async () => {
+                    if (meeting.emailSent) return true
+
+                    const userEmail = meeting.user.email
+                    if (!userEmail) {
+                        console.warn('[webhook] summary email skipped: user email missing', meeting.id)
+                        return false
+                    }
+
+                    const { sendMeetingSummaryEmail } = await import('@/lib/email-service-free')
+                    await sendMeetingSummaryEmail({
+                        userEmail,
+                        userName: meeting.user.name || 'User',
+                        meetingTitle: meeting.title,
+                        summary: processed.summary,
+                        actionItems: processed.actionItems,
+                        meetingId: meeting.id,
+                        meetingDate: meeting.startTime.toLocaleDateString()
+                    })
+                    return true
+                })(),
+                (async () => {
+                    if (meeting.ragProcessed) return
+
+                    const { processTranscript } = await import('@/lib/rag')
+                    await processTranscript(
+                        meeting.id,
+                        meeting.userId,
+                        transcriptText,
+                        meeting.title
+                    )
+                })()
             ])
 
             if (emailResult.status === 'rejected') {
@@ -130,12 +170,16 @@ export async function POST(request: NextRequest) {
             await prisma.meeting.update({
                 where: { id: meeting.id },
                 data: {
-                    emailSent: emailResult.status === 'fulfilled',
+                    emailSent: emailResult.status === 'fulfilled' && emailResult.value,
                     emailSentAt:
-                        emailResult.status === 'fulfilled' ? new Date() : undefined,
+                        emailResult.status === 'fulfilled' && emailResult.value
+                            ? meeting.emailSentAt ?? new Date()
+                            : undefined,
                     ragProcessed: ragResult.status === 'fulfilled',
                     ragProcessedAt:
-                        ragResult.status === 'fulfilled' ? new Date() : undefined
+                        ragResult.status === 'fulfilled'
+                            ? meeting.ragProcessedAt ?? new Date()
+                            : undefined
                 }
             })
         } catch (processingError) {

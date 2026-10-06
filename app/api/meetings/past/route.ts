@@ -2,6 +2,8 @@ import { prisma } from "@/lib/db";
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
+export const dynamic = 'force-dynamic'
+
 export async function GET() {
     try {
         const { userId } = await auth()
@@ -29,9 +31,13 @@ export async function GET() {
             take: 10
         })
 
-        return NextResponse.json({ meetings: pastMeetings })
+        return NextResponse.json(
+            { meetings: pastMeetings },
+            { headers: { 'Cache-Control': 'private, no-store' } }
+        )
 
-    } catch {
+    } catch (error) {
+        console.error('[past-meetings] failed:', error)
         return NextResponse.json({ error: 'failed to fetch past meetings', meetings: [] }, { status: 500 })
     }
 }

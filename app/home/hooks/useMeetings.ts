@@ -1,7 +1,7 @@
 "use client";
 
 import { useAuth } from "@clerk/nextjs";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export interface CalendarEvent {
   id: string;
@@ -41,6 +41,7 @@ export function useMeetings() {
   const [error, setError] = useState<string>("");
   const [botToggles, setBotToggles] = useState<{ [key: string]: boolean }>({});
   const [initialLoading, setInitialLoading] = useState(true);
+  const pastRequestInFlight = useRef(false);
 
   const applyUpcomingEvents = (events: CalendarEvent[]) => {
     setUpcomingEvents(events);
@@ -57,7 +58,6 @@ export function useMeetings() {
   useEffect(() => {
     if (userId) {
       fetchUpcomingEvents();
-      fetchPastMeetings();
     }
   }, [userId]);
 
@@ -149,6 +149,7 @@ export function useMeetings() {
 
         applyUpcomingEvents(meetingsResult.events || [])
         setConnected(meetingsResult.connected)
+        await fetchPastMeetings(false)
 
         console.info('[calendar-refresh]', {
             created: syncResult.created,
@@ -168,14 +169,16 @@ export function useMeetings() {
     }
 }
 
-  const fetchPastMeetings = async () => {
-    setPastLoading(true);
+  const fetchPastMeetings = useCallback(async (showLoading = true) => {
+    if (pastRequestInFlight.current) return;
+    pastRequestInFlight.current = true;
+    if (showLoading) setPastLoading(true);
     try {
-      const response = await fetch("/api/meetings/past");
+      const response = await fetch("/api/meetings/past", { cache: "no-store" });
       const result = await response.json();
 
       if (!response.ok) {
-        console.error("faild to fetch past meetings:", result.error);
+        console.error("Failed to fetch past meetings:", result.error);
         return;
       }
 
@@ -184,10 +187,34 @@ export function useMeetings() {
       }
       setPastMeetings(result.meetings as PastMeeting[]);
     } catch (error) {
-      console.error("faild to fetch past meetings:", error);
+      console.error("Failed to fetch past meetings:", error);
+    } finally {
+      pastRequestInFlight.current = false;
+      setPastLoading(false);
     }
-    setPastLoading(false);
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!userId) return;
+
+    void fetchPastMeetings();
+
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") {
+        void fetchPastMeetings(false);
+      }
+    };
+
+    const interval = window.setInterval(refreshWhenVisible, 30_000);
+    window.addEventListener("focus", refreshWhenVisible);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus", refreshWhenVisible);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
+  }, [userId, fetchPastMeetings]);
 
   const toggleBot = async (eventId: string) => {
     try {

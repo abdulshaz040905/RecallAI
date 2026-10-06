@@ -54,6 +54,7 @@ export default function Home() {
     botToggles,
     initialLoading,
     refreshUpcomingEvents,
+    fetchPastMeetings,
     toggleBot,
     directOAuth,
     getAttendeeList,
@@ -129,13 +130,23 @@ export default function Home() {
           <section className="min-w-0 flex-1">
             <SectionHeading
               aside={
-                <Link
-                  href="/search"
-                  className="link-underline flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.1em] text-ink-faint transition-colors hover:text-ink"
-                >
-                  Search & filter
-                  <ArrowUpRight className="h-3 w-3" />
-                </Link>
+                <div className="flex items-center gap-4">
+                  <button
+                    type="button"
+                    onClick={() => void fetchPastMeetings()}
+                    disabled={pastLoading}
+                    className="link-underline cursor-pointer font-mono text-[10px] uppercase tracking-[0.1em] text-ink-faint transition-colors hover:text-ink disabled:opacity-40"
+                  >
+                    {pastLoading ? 'Refreshing…' : 'Refresh'}
+                  </button>
+                  <Link
+                    href="/search"
+                    className="link-underline flex items-center gap-1 font-mono text-[10px] uppercase tracking-[0.1em] text-ink-faint transition-colors hover:text-ink"
+                  >
+                    Search & filter
+                    <ArrowUpRight className="h-3 w-3" />
+                  </Link>
+                </div>
               }
             >
               Past meetings
